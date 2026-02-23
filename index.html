@@ -1,17 +1,64 @@
-<body style="font-family:Segoe UI;background:#eef2f7;padding:40px;">
+<!DOCTYPE html>
+<html>
+<head>
+<title>RS Associates ERP</title>
 
-<h1>RS Associates ERP</h1>
+<style>
+body{
+font-family:Segoe UI;
+background:#eef2f7;
+padding:40px;
+}
 
-<div style="
+.container{
+max-width:900px;
+margin:auto;
+}
+
+.card{
 background:white;
-padding:20px;
+padding:25px;
 border-radius:12px;
-width:300px;">
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
 
-<a href="ledger.html">📊 Ledger</a><br><br>
-<a href="invoice.html">🧾 Create Invoice</a><br><br>
-<a href="receipts.html">💰 Receipts</a>
+.grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:20px;
+margin-top:20px;
+}
 
+.box{
+background:#1f3c88;
+color:white;
+padding:25px;
+border-radius:10px;
+text-align:center;
+font-size:18px;
+cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<div class="card">
+
+<h2>RS Associates – ERP Dashboard</h2>
+
+<div class="grid">
+<a href="customer-master.html"><div class="box">Customer Master</div></a>
+<a href="ledger-create.html"><div class="box">Create Ledger</div></a>
+<a href="ledger.html"><div class="box">Ledger Dashboard</div></a>
+<a href="invoice.html"><div class="box">Create Invoice</div></a>
+<a href="invoices.html"><div class="box">Invoices List</div></a>
+<a href="receipts.html"><div class="box">Receipts</div></a>
+</div>
+
+</div>
 </div>
 
 </body>
+</html>
