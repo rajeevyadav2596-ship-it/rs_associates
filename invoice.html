@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>RS Associates – Create Invoice</title>
+<title>Create Invoice</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
 body{
-font-family: 'Segoe UI', sans-serif;
+font-family:'Segoe UI',sans-serif;
 background:#eef2f7;
 padding:30px;
 }
@@ -25,51 +25,48 @@ box-shadow:0 6px 18px rgba(0,0,0,0.08);
 margin-bottom:20px;
 }
 
-h2{
-margin-top:0;
+label{
+font-weight:600;
+display:block;
+margin-top:10px;
 color:#1f3c88;
 }
 
-input{
-padding:10px;
-margin:8px 0;
+input,select{
 width:100%;
+padding:10px;
 border-radius:8px;
 border:1px solid #ccc;
+margin-top:5px;
 }
 
 button{
-padding:10px 20px;
+margin-top:15px;
+padding:10px 18px;
 background:#1f3c88;
 color:white;
 border:none;
 border-radius:8px;
 cursor:pointer;
-margin-right:10px;
 }
 
-button:hover{
-background:#162d63;
-}
-
-.invoice-preview{
-margin-top:20px;
-padding:20px;
-border:1px solid #ccc;
-border-radius:10px;
+.preview-bar{
 background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:15px;
+margin-top:10px;
 }
 
 th{
 background:#1f3c88;
 color:white;
-padding:10px;
+padding:8px;
 }
 
 td{
@@ -84,54 +81,144 @@ border-bottom:1px solid #eee;
 <div class="container">
 
 <div class="card">
+
 <h2>Create Invoice</h2>
 
-<input id="invoiceNo" placeholder="Invoice Number">
-<input id="firm" placeholder="Customer Name">
-<input id="person" placeholder="Person Name">
-<input id="period" placeholder="Time Period">
-<input id="gst" placeholder="GST Fees">
-<input id="itr" placeholder="ITR Charges">
-<input id="other" placeholder="Other Charges">
+<label>Invoice Number</label>
+<input id="invoiceNo" readonly>
 
-<button onclick="generateInvoice()">Generate</button>
+<label>Customer Name</label>
+<select id="firm"></select>
+
+<label>Person Name</label>
+<input id="person">
+
+<label>Time Period</label>
+<input type="date" id="start">
+<input type="date" id="end">
+
+<label>GST Fees</label>
+<input id="gst">
+
+<label>ITR Charges</label>
+<input id="itr">
+
+<label>Other Charges</label>
+<input id="other">
+
+<button onclick="generate()">Generate</button>
 <button onclick="downloadPDF()">Download PDF</button>
+
 </div>
 
-<div id="invoiceBox" class="invoice-preview"></div>
+<div id="preview" class="preview-bar"></div>
 
 </div>
 
 <script>
-function generateInvoice(){
 
-let gst = Number(gst.value)||0;
-let itr = Number(itr.value)||0;
-let other = Number(other.value)||0;
+const API="https://backend.rajeevyadav2596.workers.dev";
 
-let total = gst + itr + other;
 
-invoiceBox.innerHTML = `
-<h2 style="color:#1f3c88;">RS Associates</h2>
+/* AUTO INVOICE NUMBER */
+
+async function loadInvoiceNo(){
+
+let r=await fetch(API+"/api/next-invoice");
+let d=await r.json();
+
+invoiceNo.value=d.invoice_no;
+}
+
+
+/* LOAD CUSTOMERS */
+
+async function loadCustomers(){
+
+let r=await fetch(API+"/api/customers");
+let d=await r.json();
+
+firm.innerHTML=
+`<option value="">Select Customer</option>
+<option value="NEW">+ Add New</option>`;
+
+d.forEach(c=>{
+firm.innerHTML+=
+`<option>${c.firm_name}</option>`;
+});
+}
+
+
+/* ADD NEW CUSTOMER */
+
+firm.onchange=async function(){
+
+if(this.value==="NEW"){
+
+let name=prompt("Enter Firm Name");
+let personName=prompt("Enter Person Name");
+
+await fetch(API+"/api/add-customer",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+firm:name,
+person:personName
+})
+});
+
+loadCustomers();
+}
+};
+
+
+/* GENERATE INVOICE */
+
+function generate(){
+
+let total=
+(+gst.value||0)+
+(+itr.value||0)+
+(+other.value||0);
+
+preview.innerHTML=`
+<h2>RS Associates</h2>
 <hr>
-<p><b>Invoice No:</b> ${invoiceNo.value}</p>
+<p><b>Invoice:</b> ${invoiceNo.value}</p>
 <p><b>Firm:</b> ${firm.value}</p>
 <p><b>Person:</b> ${person.value}</p>
-<p><b>Period:</b> ${period.value}</p>
+<p><b>Period:</b>
+${start.value} to ${end.value}</p>
 
 <table>
 <tr><th>Particular</th><th>Amount</th></tr>
-<tr><td>GST Fees</td><td>${gst}</td></tr>
-<tr><td>ITR Charges</td><td>${itr}</td></tr>
-<tr><td>Other Charges</td><td>${other}</td></tr>
+<tr><td>GST</td><td>${gst.value}</td></tr>
+<tr><td>ITR</td><td>${itr.value}</td></tr>
+<tr><td>Other</td><td>${other.value}</td></tr>
 <tr><th>Total</th><th>${total}</th></tr>
 </table>
 `;
-}
+
+/* RESET FORM */
+
+gst.value="";
+itr.value="";
+other.value="";
+};
+
+
+/* PDF */
 
 function downloadPDF(){
-html2pdf().from(invoiceBox).save("Invoice.pdf");
+html2pdf().from(preview).save(invoiceNo.value+".pdf");
 }
+
+
+/* INIT */
+
+loadInvoiceNo();
+loadCustomers();
+
 </script>
 
 </body>
