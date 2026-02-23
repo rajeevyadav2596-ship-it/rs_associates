@@ -1,37 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>RS Associates – Ledger</title>
+<title>Ledger</title>
 
 <style>
 body{
-font-family:'Segoe UI',sans-serif;
+font-family:'Segoe UI';
 background:#eef2f7;
 padding:30px;
 }
 
-.container{
-max-width:1000px;
-margin:auto;
-}
-
 .card{
 background:white;
-padding:25px;
-border-radius:14px;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
-
-h2{
-color:#1f3c88;
+padding:20px;
+border-radius:12px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 
 input{
 padding:10px;
 width:100%;
-border-radius:8px;
+margin-bottom:10px;
+border-radius:6px;
 border:1px solid #ccc;
-margin-bottom:15px;
 }
 
 table{
@@ -49,72 +40,59 @@ td{
 padding:10px;
 border-bottom:1px solid #eee;
 }
-
-tr:hover{
-background:#f5f7fa;
-}
 </style>
 </head>
 
 <body>
 
-<div class="container">
 <div class="card">
 
 <h2>Ledger Dashboard</h2>
 
-<input type="text" id="searchInput"
-placeholder="Search firm or invoice..."
-onkeyup="autoSearch()">
+<input
+id="search"
+placeholder="Auto search firm / invoice"
+onkeyup="filterTable()">
 
-<table id="ledgerTable">
-<thead>
+<table id="tbl">
+
 <tr>
 <th>Date</th>
 <th>Firm</th>
-<th>Fees</th>
-<th>Payment</th>
 <th>Balance</th>
 <th>Invoice</th>
 </tr>
-</thead>
 
-<tbody>
 <tr>
 <td>2026-02-23</td>
 <td>Manoj</td>
 <td>7800</td>
-<td>0</td>
-<td>7800</td>
 <td>RS-1</td>
 </tr>
-</tbody>
+
 </table>
 
 </div>
-</div>
 
 <script>
-function autoSearch(){
+function filterTable(){
 
-let input =
-document.getElementById("searchInput").value.toLowerCase();
+let v =
+document.getElementById("search")
+.value.toLowerCase();
 
-let table =
-document.getElementById("ledgerTable");
+let r =
+document.querySelectorAll("#tbl tr");
 
-let tr = table.getElementsByTagName("tr");
+r.forEach((row,i)=>{
 
-for(let i=1;i<tr.length;i++){
+if(i===0)return;
 
-let rowText = tr[i].innerText.toLowerCase();
+row.style.display =
+row.innerText.toLowerCase()
+.includes(v)?"":"none";
 
-if(rowText.includes(input)){
-tr[i].style.display="";
-}else{
-tr[i].style.display="none";
-}
-}
+});
 }
 </script>
 
