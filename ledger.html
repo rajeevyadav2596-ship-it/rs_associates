@@ -1,100 +1,28 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Ledger</title>
+<input id="search" placeholder="Search..."
+onkeyup="filter()">
 
-<style>
-body{
-font-family:'Segoe UI';
-background:#eef2f7;
-padding:30px;
-}
-
-.card{
-background:white;
-padding:20px;
-border-radius:12px;
-box-shadow:0 4px 12px rgba(0,0,0,0.1);
-}
-
-input{
-padding:10px;
-width:100%;
-margin-bottom:10px;
-border-radius:6px;
-border:1px solid #ccc;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-}
-
-th{
-background:#1f3c88;
-color:white;
-padding:10px;
-}
-
-td{
-padding:10px;
-border-bottom:1px solid #eee;
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-<h2>Ledger Dashboard</h2>
-
-<input
-id="search"
-placeholder="Auto search firm / invoice"
-onkeyup="filterTable()">
-
-<table id="tbl">
-
-<tr>
-<th>Date</th>
-<th>Firm</th>
-<th>Balance</th>
-<th>Invoice</th>
-</tr>
-
-<tr>
-<td>2026-02-23</td>
-<td>Manoj</td>
-<td>7800</td>
-<td>RS-1</td>
-</tr>
-
-</table>
-
-</div>
+<table id="tbl" border="1"></table>
 
 <script>
-function filterTable(){
+fetch(API+"/api/ledger")
+.then(r=>r.json())
+.then(d=>{
+d.forEach(x=>{
+tbl.innerHTML+=`
+<tr>
+<td>${x.firm_name}</td>
+<td>${x.final_amount}</td>
+</tr>`;
+});
+});
 
-let v =
-document.getElementById("search")
-.value.toLowerCase();
-
-let r =
-document.querySelectorAll("#tbl tr");
-
-r.forEach((row,i)=>{
-
-if(i===0)return;
-
-row.style.display =
-row.innerText.toLowerCase()
-.includes(v)?"":"none";
-
+function filter(){
+let v=search.value.toLowerCase();
+document.querySelectorAll("#tbl tr")
+.forEach(r=>{
+r.style.display=
+r.innerText.toLowerCase().includes(v)
+?"":"none";
 });
 }
 </script>
-
-</body>
-</html>
