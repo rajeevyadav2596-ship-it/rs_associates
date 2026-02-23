@@ -1,148 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Firm Ledger Dashboard</title>
-
-<style>
-body{
-    font-family: Arial, Helvetica, sans-serif;
-    background:#f4f6f9;
-    margin:0;
-    padding:20px;
-}
-
-/* Card Layout */
-.card{
-    background:#ffffff;
-    padding:20px;
-    border-radius:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
-    margin-bottom:20px;
-}
-
-/* Headings */
-h2{
-    margin-top:0;
-    color:#2c3e50;
-}
-
-/* Inputs */
-input, select{
-    padding:8px;
-    margin:5px 0;
-    border:1px solid #ccc;
-    border-radius:6px;
-    width:250px;
-}
-
-/* Button */
-button{
-    background:#2e86de;
-    color:white;
-    padding:10px 18px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-}
-
-button:hover{
-    background:#1b4f72;
-}
-
-/* Table */
-table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:15px;
-    background:white;
-}
-
-th{
-    background:#2e86de;
-    color:white;
-    padding:10px;
-    text-align:left;
-}
-
-td{
-    padding:8px;
-    border-bottom:1px solid #ddd;
-}
-
-tr:hover{
-    background:#f2f2f2;
-}
-</style>
-</head>
-
-<body>
-
-<!-- Add Entry -->
-<div class="card">
-<h2>Add Ledger Entry</h2>
-
-<input list="firms" id="firmName" placeholder="Firm Name">
-<datalist id="firms"></datalist><br>
-
-<input type="number" id="rate" placeholder="Rate"><br>
-
-<input type="number" id="fees" placeholder="Fees / Charges"><br>
-
-<input type="number" id="payment" placeholder="Payment"><br>
-
-<input type="number" id="discount" placeholder="Discount"><br>
-
-<select id="paymentType" required>
-<option value="">Select Payment Type *</option>
-<option>Cash</option>
-<option>Credit</option>
-</select><br><br>
-
-<button onclick="saveEntry()">Save Entry</button>
-</div>
-
-
-<!-- Dashboard -->
-<div class="card">
-<h2>Ledger Dashboard</h2>
-
-<input id="searchFirm" placeholder="Firm Name">
-<button onclick="loadLedger()">Load</button>
-
-<table>
-<thead>
-<tr>
-<th>Date</th>
-<th>Rate</th>
-<th>Fees/Charges</th>
-<th>Payment</th>
-<th>Discount</th>
-<th>Balance</th>
-<th>Payment Type</th>
-</tr>
-</thead>
-
-<tbody id="ledgerTable"></tbody>
-</table>
-</div>
-
-
 <script>
-let ledger = JSON.parse(localStorage.getItem("ledger")) || [];
-let firms = JSON.parse(localStorage.getItem("firms")) || [];
+const API = "https://ledger-api.YOURNAME.workers.dev";
 
-/* Populate firm dropdown */
-function loadFirms(){
-    let list = document.getElementById("firms");
-    list.innerHTML="";
-    firms.forEach(f=>{
-        list.innerHTML += `<option value="${f}">`;
-    });
-}
-loadFirms();
-
-
-function saveEntry(){
+async function saveEntry(){
 
 let firm = document.getElementById("firmName").value.trim();
 let rate = Number(document.getElementById("rate").value);
@@ -151,44 +10,38 @@ let payment = Number(document.getElementById("payment").value);
 let discount = Number(document.getElementById("discount").value);
 let type = document.getElementById("paymentType").value;
 
-/* Mandatory check */
 if(!firm || !type){
-    alert("Firm Name & Payment Type mandatory");
-    return;
+  alert("Firm Name & Payment Type mandatory");
+  return;
 }
 
-/* Balance calc */
-let prevBal = ledger
-.filter(x=>x.firm==firm)
-.reduce((a,b)=>a+b.balance,0);
+let balance = fees - payment - discount;
 
-let balance = prevBal + fees - payment - discount;
-
-let entry = {
+await fetch(API,{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+firm,
 date:new Date().toLocaleString(),
-firm, rate, fees, payment, discount,
-balance, type
-};
+rate,
+fees,
+payment,
+discount,
+balance,
+payment_type:type
+})
+});
 
-ledger.push(entry);
-
-/* Save firm name if new */
-if(!firms.includes(firm)){
-    firms.push(firm);
-    localStorage.setItem("firms",JSON.stringify(firms));
-    loadFirms();
-}
-
-localStorage.setItem("ledger",JSON.stringify(ledger));
-
-alert("Saved");
+alert("Saved Online");
 }
 
 
-function loadLedger(){
+async function loadLedger(){
 
 let firm = document.getElementById("searchFirm").value;
-let data = ledger.filter(x=>x.firm==firm);
+
+let res = await fetch(API+"?firm="+firm);
+let data = await res.json();
 
 let html="";
 
@@ -201,13 +54,10 @@ html+=`
 <td>${e.payment}</td>
 <td>${e.discount}</td>
 <td>${e.balance}</td>
-<td>${e.type}</td>
+<td>${e.payment_type}</td>
 </tr>`;
 });
 
 document.getElementById("ledgerTable").innerHTML=html;
 }
 </script>
-
-</body>
-</html>
