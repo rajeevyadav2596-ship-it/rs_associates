@@ -1,0 +1,68 @@
+<script>
+const API="https://backend.rajeevyadav2596.workers.dev";
+
+async function save(){
+
+await fetch(API+"/api/add-ledger",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+firm:firm.value,
+fees:+fees.value||0,
+payment:+payment.value||0,
+discount:+discount.value||0,
+payment_type:type.value,
+invoice_no:invoice.value
+})
+});
+
+alert("Saved");
+}
+
+async function load(){
+
+let r=await fetch(
+API+"/api/get-ledger?firm="+search.value);
+
+let d=await r.json();
+
+let h="";
+d.forEach(x=>{
+h+=`<tr>
+<td>${x.date}</td>
+<td>${x.fees}</td>
+<td>${x.payment}</td>
+<td>${x.balance}</td>
+<td>
+<a href="invoice.html?no=${x.invoice_no}">
+Open Bill
+</a>
+</td>
+</tr>`;
+});
+
+table.innerHTML=h;
+}
+</script>
+
+Firm <input id="firm"><br>
+Fees <input id="fees"><br>
+Payment <input id="payment"><br>
+Discount <input id="discount"><br>
+Invoice No <input id="invoice"><br>
+Type <select id="type">
+<option>Cash</option>
+<option>Credit</option>
+</select><br>
+
+<button onclick="save()">Save</button>
+
+<hr>
+
+Search Firm
+<input id="search">
+<button onclick="load()">Load</button>
+
+<table border="1">
+<tbody id="table"></tbody>
+</table>
