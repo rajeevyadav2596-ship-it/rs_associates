@@ -1,50 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>RS Associates – Create Invoice</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<script>
-const API="https://backend.rajeevyadav2596.workers.dev";
-
-function make(){
-
-let total=
-+gst.value+ +itr.value+ +other.value;
-
-box.innerHTML=`
-<h2>RS Associates</h2>
-Invoice: ${no.value}<br>
-Firm: ${firm.value}<br>
-Total: ${total}
-`;
-
-fetch(API+"/api/add-invoice",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-invoice_no:no.value,
-firm:firm.value,
-person:person.value,
-period:period.value,
-gst_fees:+gst.value,
-itr:+itr.value,
-other_charges:+other.value,
-final_bill:total
-})
-});
+<style>
+body{
+font-family: 'Segoe UI', sans-serif;
+background:#eef2f7;
+padding:30px;
 }
 
-function pdf(){
-html2pdf().from(box).save();
+.container{
+max-width:900px;
+margin:auto;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:14px;
+box-shadow:0 6px 18px rgba(0,0,0,0.08);
+margin-bottom:20px;
+}
+
+h2{
+margin-top:0;
+color:#1f3c88;
+}
+
+input{
+padding:10px;
+margin:8px 0;
+width:100%;
+border-radius:8px;
+border:1px solid #ccc;
+}
+
+button{
+padding:10px 20px;
+background:#1f3c88;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+margin-right:10px;
+}
+
+button:hover{
+background:#162d63;
+}
+
+.invoice-preview{
+margin-top:20px;
+padding:20px;
+border:1px solid #ccc;
+border-radius:10px;
+background:white;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+
+th{
+background:#1f3c88;
+color:white;
+padding:10px;
+}
+
+td{
+padding:8px;
+border-bottom:1px solid #eee;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+<h2>Create Invoice</h2>
+
+<input id="invoiceNo" placeholder="Invoice Number">
+<input id="firm" placeholder="Customer Name">
+<input id="person" placeholder="Person Name">
+<input id="period" placeholder="Time Period">
+<input id="gst" placeholder="GST Fees">
+<input id="itr" placeholder="ITR Charges">
+<input id="other" placeholder="Other Charges">
+
+<button onclick="generateInvoice()">Generate</button>
+<button onclick="downloadPDF()">Download PDF</button>
+</div>
+
+<div id="invoiceBox" class="invoice-preview"></div>
+
+</div>
+
+<script>
+function generateInvoice(){
+
+let gst = Number(gst.value)||0;
+let itr = Number(itr.value)||0;
+let other = Number(other.value)||0;
+
+let total = gst + itr + other;
+
+invoiceBox.innerHTML = `
+<h2 style="color:#1f3c88;">RS Associates</h2>
+<hr>
+<p><b>Invoice No:</b> ${invoiceNo.value}</p>
+<p><b>Firm:</b> ${firm.value}</p>
+<p><b>Person:</b> ${person.value}</p>
+<p><b>Period:</b> ${period.value}</p>
+
+<table>
+<tr><th>Particular</th><th>Amount</th></tr>
+<tr><td>GST Fees</td><td>${gst}</td></tr>
+<tr><td>ITR Charges</td><td>${itr}</td></tr>
+<tr><td>Other Charges</td><td>${other}</td></tr>
+<tr><th>Total</th><th>${total}</th></tr>
+</table>
+`;
+}
+
+function downloadPDF(){
+html2pdf().from(invoiceBox).save("Invoice.pdf");
 }
 </script>
 
-Invoice No <input id="no"><br>
-Firm <input id="firm"><br>
-Person <input id="person"><br>
-Period <input id="period"><br>
-GST <input id="gst"><br>
-ITR <input id="itr"><br>
-Other <input id="other"><br>
-
-<button onclick="make()">Generate</button>
-<button onclick="pdf()">PDF</button>
-
-<div id="box"></div>
+</body>
+</html>
