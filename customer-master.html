@@ -1,0 +1,35 @@
+<h2>Create Customer</h2>
+
+Firm Name
+<input id="firm"><br>
+
+Person Name
+<input id="person"><br>
+
+GST Rate (Per Month)
+<input id="gst"><br>
+
+Audit Fee (Per Month)
+<input id="audit"><br>
+
+<button onclick="save()">Save</button>
+
+<script>
+const API="https://backend.rajeevyadav2596.workers.dev";
+
+function save(){
+
+fetch(API+"/api/add-customer",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+firm:firm.value,
+person:person.value,
+gst:+gst.value,
+audit:+audit.value
+})
+});
+
+alert("Customer Saved");
+}
+</script>
