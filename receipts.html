@@ -1,0 +1,51 @@
+<script>
+const API="https://backend.rajeevyadav2596.workers.dev";
+
+async function save(){
+
+await fetch(API+"/api/add-receipt",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+firm:firm.value,
+amount:+amount.value,
+mode:mode.value
+})
+});
+
+alert("Saved");
+}
+
+async function load(){
+
+let r=await fetch(API+"/api/get-receipts");
+let d=await r.json();
+
+let h="";
+d.forEach(x=>{
+h+=`<tr>
+<td>${x.firm}</td>
+<td>${x.amount}</td>
+<td>${x.mode}</td>
+<td>${x.date}</td>
+</tr>`;
+});
+
+table.innerHTML=h;
+}
+</script>
+
+Firm <input id="firm"><br>
+Amount <input id="amount"><br>
+
+<select id="mode">
+<option>Cash</option>
+<option>Bank</option>
+</select><br>
+
+<button onclick="save()">Save</button>
+<button onclick="load()">Load</button>
+
+<table border="1">
+<tbody id="table"></tbody>
+</table>
