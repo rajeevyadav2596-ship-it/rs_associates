@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Invoice</title>
+<title>Create Invoice</title>
 
 <style>
 body{
@@ -16,6 +16,7 @@ padding:30px;
 border-radius:10px;
 width:900px;
 margin:auto;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 
 table{
@@ -24,7 +25,8 @@ border-collapse:collapse;
 }
 
 td{
-padding:8px;
+padding:10px;
+border-bottom:1px solid #eee;
 }
 
 input,select{
@@ -38,11 +40,13 @@ border-radius:4px;
 font-size:22px;
 font-weight:bold;
 margin-bottom:20px;
+color:#1f3c88;
 }
 
 .total{
 font-size:18px;
 font-weight:bold;
+color:#000;
 }
 </style>
 </head>
@@ -60,14 +64,13 @@ RS Associates – Invoice
 <tr>
 <td>Customer Name</td>
 <td>
-<input id="firm" list="firmList">
-<datalist id="firmList"></datalist>
+<select id="firm"></select>
 </td>
 </tr>
 
 <tr>
 <td>Person Name</td>
-<td><input id="person"></td>
+<td><input id="person" readonly></td>
 </tr>
 
 <tr>
@@ -86,17 +89,17 @@ to
 
 <tr>
 <td>GST Fees (Per Month)</td>
-<td><input id="gst"></td>
+<td><input id="gst" readonly></td>
 </tr>
 
 <tr>
 <td>GST Charges</td>
-<td id="gstAuto">Auto Calculated</td>
+<td id="gstTotal">Auto Calculated</td>
 </tr>
 
 <tr>
 <td>Audit Charges</td>
-<td><input id="audit"></td>
+<td id="auditTotal">Auto Calculated</td>
 </tr>
 
 <tr>
@@ -110,88 +113,85 @@ to
 </tr>
 
 <tr>
-<td>Define Charges</td>
-<td><input></td>
-</tr>
-
-<tr>
-<td>Define Charges</td>
-<td><input></td>
-</tr>
-
-<tr>
 <td class="total">Final Bill</td>
 <td class="total" id="finalBill"></td>
 </tr>
 
 </table>
 
-<button onclick="generate()">Generate</button>
+<button onclick="generate()">Generate Invoice</button>
 
 </div>
 
-
-
 <script>
 
-const API=
-"https://backend.rajeevyadav2596.workers.dev";
+const API="https://backend.rajeevyadav2596.workers.dev";
+
+let customers=[];
 
 
-/* AUTO INVOICE NO */
-
+/* AUTO INVOICE NUMBER */
 fetch(API+"/api/next-invoice")
 .then(r=>r.json())
-.then(d=>invoiceNo.value=d.no);
+.then(d=>{
+invoiceNo.value=d.invoice_no;
+});
 
 
-/* LOAD FIRMS */
-
-fetch(API+"/api/firms")
+/* LOAD CUSTOMERS */
+fetch(API+"/api/customers")
 .then(r=>r.json())
 .then(d=>{
-d.forEach(f=>{
-firmList.innerHTML+=
-`<option value="${f.firm_name}">`;
+customers=d;
+
+d.forEach(c=>{
+firm.innerHTML+=
+`<option value="${c.firm_name}">
+${c.firm_name}
+</option>`;
 });
 });
 
 
-/* GST AUTO CALC */
+/* AUTO FETCH PERSON + GST */
+firm.onchange=function(){
 
+let c=
+customers.find(x=>x.firm_name===firm.value);
+
+person.value=c.person_name;
+gst.value=c.gst_rate;
+
+};
+
+
+/* CALCULATE */
 function generate(){
 
+let f=new Date(from.value);
+let t=new Date(to.value);
+
 let months=
-(new Date(to.value).getMonth() -
-new Date(from.value).getMonth())
-+1;
+(t.getFullYear()-f.getFullYear())*12+
+(t.getMonth()-f.getMonth())+1;
 
-let gstTotal=
-months * (+gst.value||0);
+let gstT=
+months*(+gst.value||0);
 
-gstAuto.innerHTML=
-gstTotal+" (Auto)";
+let auditT=
+months*(+customers
+.find(x=>x.firm_name===firm.value)
+.audit_rate||0);
 
-let total=
-gstTotal+
-(+audit.value||0)+
+gstTotal.innerHTML=gstT;
+auditTotal.innerHTML=auditT;
+
+let final=
+gstT+auditT+
 (+other.value||0)+
 (+itr.value||0);
 
-finalBill.innerHTML=total;
-
-
-/* SAVE NEW FIRM */
-
-fetch(API+"/api/add-firm",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-firm:firm.value,
-person:person.value,
-gst:gst.value
-})
-});
+finalBill.innerHTML=final;
 
 }
 </script>
