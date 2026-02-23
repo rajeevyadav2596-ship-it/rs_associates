@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CA Ledger</title>
+</head>
+<body>
+
+<h2>Add Ledger Entry</h2>
+
+<input id="client_id" placeholder="Client ID"><br>
+<input id="rate" placeholder="Rate"><br>
+<input id="credit" placeholder="Credit"><br>
+<input id="debit" placeholder="Debit"><br>
+<input id="note" placeholder="Note"><br>
+
+<button onclick="save()">Save</button>
+
+<h2>Dashboard</h2>
+
+<input id="view_id" placeholder="Client ID">
+<button onclick="load()">Load</button>
+
+<table border="1" id="table">
+<tr>
+<th>Date</th>
+<th>Rate</th>
+<th>Credit</th>
+<th>Debit</th>
+<th>Balance</th>
+<th>Note</th>
+</tr>
+</table>
+
+<script>
+const API =
+"https://backend.rajeevyadav2596.workers.dev";
+
+async function save() {
+
+ await fetch(API + "/api/add-ledger", {
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({
+    client_id:client_id.value,
+    rate:rate.value,
+    credit:credit.value,
+    debit:debit.value,
+    note:note.value
+  })
+ });
+
+ alert("Saved");
+}
+
+async function load() {
+
+ const res = await fetch(
+  API + "/api/ledger/" + view_id.value
+ );
+
+ const data = await res.json();
+
+ table.innerHTML += data.map(r=>`
+  <tr>
+   <td>${r.created_at}</td>
+   <td>${r.rate}</td>
+   <td>${r.credit}</td>
+   <td>${r.debit}</td>
+   <td>${r.balance}</td>
+   <td>${r.note}</td>
+  </tr>`).join("");
+}
+</script>
+
+</body>
+</html>
