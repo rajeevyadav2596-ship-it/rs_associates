@@ -1,0 +1,50 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+const API="https://backend.rajeevyadav2596.workers.dev";
+
+function make(){
+
+let total=
++gst.value+ +itr.value+ +other.value;
+
+box.innerHTML=`
+<h2>RS Associates</h2>
+Invoice: ${no.value}<br>
+Firm: ${firm.value}<br>
+Total: ${total}
+`;
+
+fetch(API+"/api/add-invoice",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+invoice_no:no.value,
+firm:firm.value,
+person:person.value,
+period:period.value,
+gst_fees:+gst.value,
+itr:+itr.value,
+other_charges:+other.value,
+final_bill:total
+})
+});
+}
+
+function pdf(){
+html2pdf().from(box).save();
+}
+</script>
+
+Invoice No <input id="no"><br>
+Firm <input id="firm"><br>
+Person <input id="person"><br>
+Period <input id="period"><br>
+GST <input id="gst"><br>
+ITR <input id="itr"><br>
+Other <input id="other"><br>
+
+<button onclick="make()">Generate</button>
+<button onclick="pdf()">PDF</button>
+
+<div id="box"></div>
