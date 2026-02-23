@@ -1,51 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Receipt</title>
+
+<style>
+body{
+font-family:Segoe UI;
+background:#eef2f7;
+padding:40px;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:12px;
+width:600px;
+margin:auto;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+label{
+font-weight:bold;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:8px 0;
+border-radius:6px;
+border:1px solid #ccc;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>Receipt Entry</h2>
+
+<label>Firm</label>
+<select id="firm"></select>
+
+<label>Ledger</label>
+<select id="ledger"></select>
+
+<label>Amount</label>
+<input id="amount">
+
+<label>Mode</label>
+<select id="mode">
+<option>Cash</option>
+<option>Bank</option>
+<option>UPI</option>
+</select>
+
+<button onclick="save()">Save Receipt</button>
+
+</div>
+
+
+
 <script>
-const API="https://backend.rajeevyadav2596.workers.dev";
 
-async function save(){
+const API=
+"https://backend.rajeevyadav2596.workers.dev";
 
-await fetch(API+"/api/add-receipt",{
+
+/* LOAD FIRMS */
+
+fetch(API+"/api/firms")
+.then(r=>r.json())
+.then(d=>{
+d.forEach(f=>{
+firm.innerHTML+=
+`<option>${f.firm_name}</option>`;
+});
+});
+
+
+/* LOAD LEDGER */
+
+fetch(API+"/api/ledger-list")
+.then(r=>r.json())
+.then(d=>{
+d.forEach(l=>{
+ledger.innerHTML+=
+`<option>${l.firm}</option>`;
+});
+});
+
+
+function save(){
+
+fetch(API+"/api/add-receipt",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 firm:firm.value,
-amount:+amount.value,
+ledger:ledger.value,
+amount:amount.value,
 mode:mode.value
 })
 });
 
-alert("Saved");
-}
-
-async function load(){
-
-let r=await fetch(API+"/api/get-receipts");
-let d=await r.json();
-
-let h="";
-d.forEach(x=>{
-h+=`<tr>
-<td>${x.firm}</td>
-<td>${x.amount}</td>
-<td>${x.mode}</td>
-<td>${x.date}</td>
-</tr>`;
-});
-
-table.innerHTML=h;
+alert("Receipt Saved");
 }
 </script>
 
-Firm <input id="firm"><br>
-Amount <input id="amount"><br>
-
-<select id="mode">
-<option>Cash</option>
-<option>Bank</option>
-</select><br>
-
-<button onclick="save()">Save</button>
-<button onclick="load()">Load</button>
-
-<table border="1">
-<tbody id="table"></tbody>
-</table>
+</body>
+</html>
