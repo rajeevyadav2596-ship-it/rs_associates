@@ -1,37 +1,17 @@
 <!DOCTYPE html>
-
 <html>
 <head>
-  <title>CA Ledger</title>
-
-  <style>
-    body {
-      font-family: Arial;
-      padding: 20px;
-    }
-
-    input, button {
-      padding: 6px;
-      margin: 4px;
-    }
-
-    table {
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-
-    th, td {
-      border: 1px solid black;
-      padding: 6px 10px;
-    }
-  </style>
-
+<title>CA Ledger</title>
 </head>
 <body>
 
 <h2>Add Ledger Entry</h2>
 
-<input id="client_id" placeholder="Client ID"><br> <input id="rate" placeholder="Rate"><br> <input id="credit" placeholder="Credit"><br> <input id="debit" placeholder="Debit"><br> <input id="note" placeholder="Note"><br>
+<input id="client_id" placeholder="Client ID"><br>
+<input id="rate" placeholder="Rate"><br>
+<input id="credit" placeholder="Credit"><br>
+<input id="debit" placeholder="Debit"><br>
+<input id="note" placeholder="Note"><br>
 
 <button onclick="save()">Save</button>
 
@@ -40,8 +20,7 @@
 <input id="view_id" placeholder="Client ID">
 <button onclick="load()">Load</button>
 
-<table id="table">
-<thead>
+<table border="1" id="table">
 <tr>
 <th>Date</th>
 <th>Rate</th>
@@ -50,81 +29,60 @@
 <th>Balance</th>
 <th>Note</th>
 </tr>
-</thead>
-<tbody id="tbody"></tbody>
 </table>
 
 <script>
-
 const API =
 "https://backend.rajeevyadav2596.workers.dev";
 
-// ✅ SAVE ENTRY
 async function save() {
 
-  try {
+ await fetch(API + "/api/add-ledger", {
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({
+    client_id:client_id.value,
+    rate:rate.value,
+    credit:credit.value,
+    debit:debit.value,
+    note:note.value
+  })
+ });
 
-    const res = await fetch(API + "/api/add-ledger", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: client_id.value,
-        rate: rate.value,
-        credit: credit.value,
-        debit: debit.value,
-        note: note.value
-      })
-    });
-
-    const data = await res.json();
-
-    alert("Saved ✅");
-
-  } catch (err) {
-    alert("Error saving ❌");
-    console.error(err);
-  }
+ alert("Saved");
 }
 
-
-// ✅ LOAD LEDGER
 async function load() {
 
-  try {
+ const res = await fetch(
+  API + "/api/get-ledger?client_id=" +
+  view_id.value
+ );
 
-    const res = await fetch(
-      API + "/api/get-ledger?client_id=" + view_id.value
-    );
+ const data = await res.json();
 
-    const data = await res.json();
+ table.innerHTML = `
+<tr>
+<th>Date</th>
+<th>Rate</th>
+<th>Credit</th>
+<th>Debit</th>
+<th>Balance</th>
+<th>Note</th>
+</tr>`;
 
-    const tbody =
-      document.getElementById("tbody");
-
-    // 🔹 Clear old rows
-    tbody.innerHTML = "";
-
-    data.forEach(r => {
-
-      tbody.innerHTML += `
-        <tr>
-          <td>${r.created_at}</td>
-          <td>${r.rate}</td>
-          <td>${r.credit}</td>
-          <td>${r.debit}</td>
-          <td>${r.balance}</td>
-          <td>${r.note}</td>
-        </tr>
-      `;
-
-    });
-
-  } catch (err) {
-    alert("Error loading ❌");
-    console.error(err);
-  }
+ data.forEach(r => {
+  table.innerHTML += `
+   <tr>
+    <td>${r.created_at}</td>
+    <td>${r.rate}</td>
+    <td>${r.credit}</td>
+    <td>${r.debit}</td>
+    <td>${r.balance}</td>
+    <td>${r.note}</td>
+   </tr>`;
+ });
 }
-
 </script>
 
 </body>
