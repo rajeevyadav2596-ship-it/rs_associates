@@ -1,106 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Create Invoice</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<title>Invoice</title>
 
 <style>
-
 body{
-font-family:'Segoe UI',sans-serif;
+font-family:Calibri;
 background:#eef2f7;
-padding:30px;
+padding:40px;
 }
-
-/* FORM CARD */
 
 .card{
 background:white;
-padding:25px;
-border-radius:12px;
-box-shadow:0 4px 12px rgba(0,0,0,0.1);
-max-width:900px;
+padding:30px;
+border-radius:10px;
+width:900px;
 margin:auto;
-margin-bottom:20px;
-}
-
-label{
-font-weight:600;
-display:block;
-margin-top:12px;
-}
-
-input{
-width:100%;
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
-margin-top:5px;
-}
-
-/* BUTTON */
-
-button{
-margin-top:15px;
-padding:10px 18px;
-background:#1f3c88;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
-}
-
-/* INVOICE LAYOUT */
-
-#invoicePDF{
-width:210mm;
-min-height:297mm;
-background:white;
-padding:40px;
-margin:auto;
-}
-
-.header{
-display:flex;
-justify-content:space-between;
-border-bottom:2px solid #000;
-padding-bottom:10px;
-}
-
-.title{
-font-size:26px;
-font-weight:bold;
-}
-
-.info{
-margin-top:20px;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:20px;
-}
-
-th{
-background:#1f3c88;
-color:white;
-padding:10px;
 }
 
 td{
-padding:10px;
-border-bottom:1px solid #ddd;
+padding:8px;
+}
+
+input,select{
+width:100%;
+padding:8px;
+border:1px solid #ccc;
+border-radius:4px;
+}
+
+.heading{
+font-size:22px;
+font-weight:bold;
+margin-bottom:20px;
 }
 
 .total{
-text-align:right;
 font-size:18px;
-margin-top:20px;
 font-weight:bold;
 }
-
 </style>
 </head>
 
@@ -108,59 +51,82 @@ font-weight:bold;
 
 <div class="card">
 
-<h2>Create Invoice</h2>
-
-<label>Invoice No</label>
-<input id="invoiceNo">
-
-<label>Firm</label>
-<input id="firm">
-
-<label>Person</label>
-<input id="person">
-
-<label>Period</label>
-<input id="period">
-
-<label>GST Fees</label>
-<input id="gst">
-
-<label>ITR Charges</label>
-<input id="itr">
-
-<label>Other Charges</label>
-<input id="other">
-
-<button onclick="generate()">Generate</button>
-<button onclick="downloadPDF()">Download PDF</button>
-
+<div class="heading">
+RS Associates – Invoice
 </div>
-
-
-
-<!-- PDF LAYOUT -->
-
-<div id="invoicePDF">
-
-<div class="header">
-<div class="title">RS Associates</div>
-<div id="invNo"></div>
-</div>
-
-<div class="info" id="clientInfo"></div>
 
 <table>
-<thead>
-<tr>
-<th>Particular</th>
-<th>Amount</th>
-</tr>
-</thead>
 
-<tbody id="billTable"></tbody>
+<tr>
+<td>Customer Name</td>
+<td>
+<input id="firm" list="firmList">
+<datalist id="firmList"></datalist>
+</td>
+</tr>
+
+<tr>
+<td>Person Name</td>
+<td><input id="person"></td>
+</tr>
+
+<tr>
+<td><b>Invoice No.</b></td>
+<td><input id="invoiceNo" readonly></td>
+</tr>
+
+<tr>
+<td><b>Time Period</b></td>
+<td>
+<input type="month" id="from">
+to
+<input type="month" id="to">
+</td>
+</tr>
+
+<tr>
+<td>GST Fees (Per Month)</td>
+<td><input id="gst"></td>
+</tr>
+
+<tr>
+<td>GST Charges</td>
+<td id="gstAuto">Auto Calculated</td>
+</tr>
+
+<tr>
+<td>Audit Charges</td>
+<td><input id="audit"></td>
+</tr>
+
+<tr>
+<td>Other Charges / TDS</td>
+<td><input id="other"></td>
+</tr>
+
+<tr>
+<td>ITR</td>
+<td><input id="itr"></td>
+</tr>
+
+<tr>
+<td>Define Charges</td>
+<td><input></td>
+</tr>
+
+<tr>
+<td>Define Charges</td>
+<td><input></td>
+</tr>
+
+<tr>
+<td class="total">Final Bill</td>
+<td class="total" id="finalBill"></td>
+</tr>
+
 </table>
 
-<div class="total" id="totalAmt"></div>
+<button onclick="generate()">Generate</button>
 
 </div>
 
@@ -168,51 +134,66 @@ font-weight:bold;
 
 <script>
 
+const API=
+"https://backend.rajeevyadav2596.workers.dev";
+
+
+/* AUTO INVOICE NO */
+
+fetch(API+"/api/next-invoice")
+.then(r=>r.json())
+.then(d=>invoiceNo.value=d.no);
+
+
+/* LOAD FIRMS */
+
+fetch(API+"/api/firms")
+.then(r=>r.json())
+.then(d=>{
+d.forEach(f=>{
+firmList.innerHTML+=
+`<option value="${f.firm_name}">`;
+});
+});
+
+
+/* GST AUTO CALC */
+
 function generate(){
 
-let gstV = +gst.value||0;
-let itrV = +itr.value||0;
-let otherV = +other.value||0;
+let months=
+(new Date(to.value).getMonth() -
+new Date(from.value).getMonth())
++1;
 
-let total = gstV + itrV + otherV;
+let gstTotal=
+months * (+gst.value||0);
 
-invNo.innerHTML =
-"<b>Invoice:</b> "+invoiceNo.value;
+gstAuto.innerHTML=
+gstTotal+" (Auto)";
 
-clientInfo.innerHTML = `
-Firm: ${firm.value}<br>
-Person: ${person.value}<br>
-Period: ${period.value}
-`;
+let total=
+gstTotal+
+(+audit.value||0)+
+(+other.value||0)+
+(+itr.value||0);
 
-billTable.innerHTML = `
-<tr><td>GST Fees</td><td>${gstV}</td></tr>
-<tr><td>ITR Charges</td><td>${itrV}</td></tr>
-<tr><td>Other Charges</td><td>${otherV}</td></tr>
-`;
-
-totalAmt.innerHTML =
-"Total: ₹ "+total;
-
-}
+finalBill.innerHTML=total;
 
 
-/* PERFECT PDF EXPORT */
+/* SAVE NEW FIRM */
 
-function downloadPDF(){
-
-html2pdf()
-.set({
-margin:0,
-filename: invoiceNo.value+".pdf",
-html2canvas:{scale:2},
-jsPDF:{unit:'mm',format:'a4'}
+fetch(API+"/api/add-firm",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+firm:firm.value,
+person:person.value,
+gst:gst.value
 })
-.from(document.getElementById("invoicePDF"))
-.save();
+});
 
 }
-
 </script>
 
 </body>
