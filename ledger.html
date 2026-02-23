@@ -1,68 +1,122 @@
-<script>
-const API="https://backend.rajeevyadav2596.workers.dev";
+<!DOCTYPE html>
+<html>
+<head>
+<title>RS Associates – Ledger</title>
 
-async function save(){
-
-await fetch(API+"/api/add-ledger",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-firm:firm.value,
-fees:+fees.value||0,
-payment:+payment.value||0,
-discount:+discount.value||0,
-payment_type:type.value,
-invoice_no:invoice.value
-})
-});
-
-alert("Saved");
+<style>
+body{
+font-family:'Segoe UI',sans-serif;
+background:#eef2f7;
+padding:30px;
 }
 
-async function load(){
+.container{
+max-width:1000px;
+margin:auto;
+}
 
-let r=await fetch(
-API+"/api/get-ledger?firm="+search.value);
+.card{
+background:white;
+padding:25px;
+border-radius:14px;
+box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
 
-let d=await r.json();
+h2{
+color:#1f3c88;
+}
 
-let h="";
-d.forEach(x=>{
-h+=`<tr>
-<td>${x.date}</td>
-<td>${x.fees}</td>
-<td>${x.payment}</td>
-<td>${x.balance}</td>
-<td>
-<a href="invoice.html?no=${x.invoice_no}">
-Open Bill
-</a>
-</td>
-</tr>`;
-});
+input{
+padding:10px;
+width:100%;
+border-radius:8px;
+border:1px solid #ccc;
+margin-bottom:15px;
+}
 
-table.innerHTML=h;
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th{
+background:#1f3c88;
+color:white;
+padding:10px;
+}
+
+td{
+padding:10px;
+border-bottom:1px solid #eee;
+}
+
+tr:hover{
+background:#f5f7fa;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<div class="card">
+
+<h2>Ledger Dashboard</h2>
+
+<input type="text" id="searchInput"
+placeholder="Search firm or invoice..."
+onkeyup="autoSearch()">
+
+<table id="ledgerTable">
+<thead>
+<tr>
+<th>Date</th>
+<th>Firm</th>
+<th>Fees</th>
+<th>Payment</th>
+<th>Balance</th>
+<th>Invoice</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>2026-02-23</td>
+<td>Manoj</td>
+<td>7800</td>
+<td>0</td>
+<td>7800</td>
+<td>RS-1</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+
+<script>
+function autoSearch(){
+
+let input =
+document.getElementById("searchInput").value.toLowerCase();
+
+let table =
+document.getElementById("ledgerTable");
+
+let tr = table.getElementsByTagName("tr");
+
+for(let i=1;i<tr.length;i++){
+
+let rowText = tr[i].innerText.toLowerCase();
+
+if(rowText.includes(input)){
+tr[i].style.display="";
+}else{
+tr[i].style.display="none";
+}
+}
 }
 </script>
 
-Firm <input id="firm"><br>
-Fees <input id="fees"><br>
-Payment <input id="payment"><br>
-Discount <input id="discount"><br>
-Invoice No <input id="invoice"><br>
-Type <select id="type">
-<option>Cash</option>
-<option>Credit</option>
-</select><br>
-
-<button onclick="save()">Save</button>
-
-<hr>
-
-Search Firm
-<input id="search">
-<button onclick="load()">Load</button>
-
-<table border="1">
-<tbody id="table"></tbody>
-</table>
+</body>
+</html>
