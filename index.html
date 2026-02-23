@@ -1,87 +1,211 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>CA Ledger</title>
-</head>
-<body>
+<title>Firm Ledger Dashboard</title>
 
-<h2>Add Ledger Entry</h2>
-
-<input id="client_id" placeholder="Client ID"><br>
-<input id="rate" placeholder="Rate"><br>
-<input id="credit" placeholder="Credit"><br>
-<input id="debit" placeholder="Debit"><br>
-<input id="note" placeholder="Note"><br>
-
-<button onclick="save()">Save</button>
-
-<h2>Dashboard</h2>
-
-<input id="view_id" placeholder="Client ID">
-<button onclick="load()">Load</button>
-
-<table border="1" id="table">
-<tr>
-<th>Date</th>
-<th>Rate</th>
-<th>Credit</th>
-<th>Debit</th>
-<th>Balance</th>
-<th>Note</th>
-</tr>
-</table>
-
-<script>
-const API =
-"https://backend.rajeevyadav2596.workers.dev";
-
-async function save() {
-
- await fetch(API + "/api/add-ledger", {
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({
-    client_id:client_id.value,
-    rate:rate.value,
-    credit:credit.value,
-    debit:debit.value,
-    note:note.value
-  })
- });
-
- alert("Saved");
+<style>
+body{
+    font-family: Arial, Helvetica, sans-serif;
+    background:#f4f6f9;
+    margin:0;
+    padding:20px;
 }
 
-async function load() {
+/* Card Layout */
+.card{
+    background:#ffffff;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom:20px;
+}
 
- const res = await fetch(
-  API + "/api/get-ledger?client_id=" +
-  view_id.value
- );
+/* Headings */
+h2{
+    margin-top:0;
+    color:#2c3e50;
+}
 
- const data = await res.json();
+/* Inputs */
+input, select{
+    padding:8px;
+    margin:5px 0;
+    border:1px solid #ccc;
+    border-radius:6px;
+    width:250px;
+}
 
- table.innerHTML = `
+/* Button */
+button{
+    background:#2e86de;
+    color:white;
+    padding:10px 18px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#1b4f72;
+}
+
+/* Table */
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+    background:white;
+}
+
+th{
+    background:#2e86de;
+    color:white;
+    padding:10px;
+    text-align:left;
+}
+
+td{
+    padding:8px;
+    border-bottom:1px solid #ddd;
+}
+
+tr:hover{
+    background:#f2f2f2;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Add Entry -->
+<div class="card">
+<h2>Add Ledger Entry</h2>
+
+<input list="firms" id="firmName" placeholder="Firm Name">
+<datalist id="firms"></datalist><br>
+
+<input type="number" id="rate" placeholder="Rate"><br>
+
+<input type="number" id="fees" placeholder="Fees / Charges"><br>
+
+<input type="number" id="payment" placeholder="Payment"><br>
+
+<input type="number" id="discount" placeholder="Discount"><br>
+
+<select id="paymentType" required>
+<option value="">Select Payment Type *</option>
+<option>Cash</option>
+<option>Credit</option>
+</select><br><br>
+
+<button onclick="saveEntry()">Save Entry</button>
+</div>
+
+
+<!-- Dashboard -->
+<div class="card">
+<h2>Ledger Dashboard</h2>
+
+<input id="searchFirm" placeholder="Firm Name">
+<button onclick="loadLedger()">Load</button>
+
+<table>
+<thead>
 <tr>
 <th>Date</th>
 <th>Rate</th>
-<th>Credit</th>
-<th>Debit</th>
+<th>Fees/Charges</th>
+<th>Payment</th>
+<th>Discount</th>
 <th>Balance</th>
-<th>Note</th>
-</tr>`;
+<th>Payment Type</th>
+</tr>
+</thead>
 
- data.forEach(r => {
-  table.innerHTML += `
-   <tr>
-    <td>${r.created_at}</td>
-    <td>${r.rate}</td>
-    <td>${r.credit}</td>
-    <td>${r.debit}</td>
-    <td>${r.balance}</td>
-    <td>${r.note}</td>
-   </tr>`;
- });
+<tbody id="ledgerTable"></tbody>
+</table>
+</div>
+
+
+<script>
+let ledger = JSON.parse(localStorage.getItem("ledger")) || [];
+let firms = JSON.parse(localStorage.getItem("firms")) || [];
+
+/* Populate firm dropdown */
+function loadFirms(){
+    let list = document.getElementById("firms");
+    list.innerHTML="";
+    firms.forEach(f=>{
+        list.innerHTML += `<option value="${f}">`;
+    });
+}
+loadFirms();
+
+
+function saveEntry(){
+
+let firm = document.getElementById("firmName").value.trim();
+let rate = Number(document.getElementById("rate").value);
+let fees = Number(document.getElementById("fees").value);
+let payment = Number(document.getElementById("payment").value);
+let discount = Number(document.getElementById("discount").value);
+let type = document.getElementById("paymentType").value;
+
+/* Mandatory check */
+if(!firm || !type){
+    alert("Firm Name & Payment Type mandatory");
+    return;
+}
+
+/* Balance calc */
+let prevBal = ledger
+.filter(x=>x.firm==firm)
+.reduce((a,b)=>a+b.balance,0);
+
+let balance = prevBal + fees - payment - discount;
+
+let entry = {
+date:new Date().toLocaleString(),
+firm, rate, fees, payment, discount,
+balance, type
+};
+
+ledger.push(entry);
+
+/* Save firm name if new */
+if(!firms.includes(firm)){
+    firms.push(firm);
+    localStorage.setItem("firms",JSON.stringify(firms));
+    loadFirms();
+}
+
+localStorage.setItem("ledger",JSON.stringify(ledger));
+
+alert("Saved");
+}
+
+
+function loadLedger(){
+
+let firm = document.getElementById("searchFirm").value;
+let data = ledger.filter(x=>x.firm==firm);
+
+let html="";
+
+data.forEach(e=>{
+html+=`
+<tr>
+<td>${e.date}</td>
+<td>${e.rate}</td>
+<td>${e.fees}</td>
+<td>${e.payment}</td>
+<td>${e.discount}</td>
+<td>${e.balance}</td>
+<td>${e.type}</td>
+</tr>`;
+});
+
+document.getElementById("ledgerTable").innerHTML=html;
 }
 </script>
 
