@@ -1,18 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Customer Master</title>
+
+<style>
+body{
+font-family:Segoe UI;
+background:#eef2f7;
+padding:40px;
+}
+
+.card{
+background:white;
+padding:30px;
+border-radius:12px;
+width:500px;
+margin:auto;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+label{
+font-weight:600;
+display:block;
+margin-top:15px;
+}
+
+input{
+width:100%;
+padding:10px;
+border:1px solid #ccc;
+border-radius:6px;
+}
+
+button{
+margin-top:20px;
+padding:10px 18px;
+background:#1f3c88;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
 <h2>Create Customer</h2>
 
-Firm Name
-<input id="firm"><br>
+<label>Firm Name</label>
+<input id="firm">
 
-Person Name
-<input id="person"><br>
+<label>Person Name</label>
+<input id="person">
 
-GST Rate (Per Month)
-<input id="gst"><br>
+<label>GST Rate (Per Month)</label>
+<input id="gst">
 
-Audit Fee (Per Month)
-<input id="audit"><br>
+<label>Audit Fee (Per Month)</label>
+<input id="audit">
 
-<button onclick="save()">Save</button>
+<button onclick="save()">Save Customer</button>
+
+</div>
 
 <script>
 const API="https://backend.rajeevyadav2596.workers.dev";
@@ -33,3 +85,6 @@ audit:+audit.value
 alert("Customer Saved");
 }
 </script>
+
+</body>
+</html>
