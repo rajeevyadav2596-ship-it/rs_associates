@@ -17,11 +17,15 @@ padding:20px;
 /* Card */
 .card{
 background:white;
-padding:20px;
+padding:22px;
 border-radius:12px;
-max-width:500px;
+max-width:520px;
 margin:auto;
-box-shadow:0 4px 12px rgba(0,0,0,0.1);
+box-shadow:0 4px 14px rgba(0,0,0,0.1);
+}
+
+h2{
+margin-top:0;
 }
 
 /* Inputs */
@@ -40,24 +44,19 @@ font-size:14px;
 }
 
 /* Buttons */
-.btn-group{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-}
-
-button{
-margin-top:18px;
-padding:10px;
+.btn{
+margin-top:20px;
+padding:11px;
+width:100%;
 background:#1f3c88;
 color:white;
 border:none;
 border-radius:8px;
 cursor:pointer;
-flex:1;
+font-weight:600;
 }
 
-button:hover{
+.btn:hover{
 background:#162c66;
 }
 
@@ -76,19 +75,26 @@ background:white;
 padding:8px;
 border-bottom:1px solid #eee;
 cursor:pointer;
+font-size:14px;
 }
 
 .dropdown div:hover{
 background:#f1f5ff;
 }
 
-/* Last entry */
+/* Professional Last Entry */
 .latest{
-margin-top:20px;
+margin-top:22px;
 background:#f7f9ff;
-padding:10px;
-border-radius:8px;
+border:1px solid #dbe3ff;
+padding:12px;
+border-radius:10px;
 font-size:14px;
+line-height:1.6;
+}
+
+.latest b{
+color:#1f3c88;
 }
 
 </style>
@@ -101,8 +107,8 @@ font-size:14px;
 <h2>Customer Master</h2>
 
 <!-- Search -->
-<label>Select Customer</label>
-<input id="searchFirm" placeholder="Search Firm..." onkeyup="filterFirm()">
+<label>Search Record</label>
+<input id="searchFirm" placeholder="Type Firm Name..." onkeyup="filterFirm()" onfocus="openDropdown()">
 <div id="dropdown" class="dropdown"></div>
 
 <!-- Firm -->
@@ -123,12 +129,7 @@ font-size:14px;
 <label>ITR Fee</label>
 <input id="itr" type="number">
 
-<!-- Buttons -->
-<div class="btn-group">
-<button onclick="addNew()">Add New</button>
-<button onclick="save()">Save</button>
-<button onclick="update()">Modify</button>
-</div>
+<button class="btn" onclick="save()">Save</button>
 
 <!-- Last Entry -->
 <div id="latest" class="latest"></div>
@@ -146,7 +147,7 @@ let selectedId=null;
 function sentenceCase(str){
 return str
 .toLowerCase()
-.replace(/\b\w/g, l => l.toUpperCase());
+.replace(/\b\w/g, l=>l.toUpperCase());
 }
 
 /* Load Customers */
@@ -154,22 +155,24 @@ async function loadCustomers(){
 
 const res=await fetch(API+"/api/customers");
 customers=await res.json();
-
-renderList(customers);
 }
 
 loadCustomers();
 
-/* Render Dropdown */
+/* Open Dropdown Only On Focus */
+function openDropdown(){
+renderList(customers);
+dropdown.style.display="block";
+}
+
+/* Render List */
 function renderList(list){
 
 dropdown.innerHTML="";
-dropdown.style.display="block";
 
 list.forEach(c=>{
 
 const row=document.createElement("div");
-
 row.innerText=`${c.firm_name} - ${c.person_name}`;
 
 row.onclick=()=>selectCustomer(c);
@@ -190,7 +193,7 @@ c.firm_name.toLowerCase().includes(text)
 renderList(filtered);
 }
 
-/* Select Existing */
+/* Select */
 function selectCustomer(c){
 
 selectedId=c.id;
@@ -204,8 +207,78 @@ itr.value=c.itr_fee;
 dropdown.style.display="none";
 }
 
-/* Add New */
-function addNew(){
+/* Save (Add + Update) */
+async function save(){
+
+if(!firm.value || !person.value){
+alert("Firm & Person Mandatory");
+return;
+}
+
+/* Sentence Case */
+const firmName=sentenceCase(firm.value);
+const personName=sentenceCase(person.value);
+
+/* Duplicate Check */
+const duplicate=customers.find(c=>
+c.firm_name.toLowerCase()===firmName.toLowerCase()
+&& c.id!==selectedId
+);
+
+if(duplicate){
+alert("Duplicate Firm Already Exists");
+return;
+}
+
+/* Data */
+const data={
+firm:firmName,
+person:personName,
+gst:+gst.value||0,
+audit:+audit.value||0,
+itr:+itr.value||0
+};
+
+/* ADD */
+if(!selectedId){
+
+await fetch(API+"/api/add-customer",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(data)
+});
+
+showLatest(data);
+alert("Customer Added");
+
+}
+
+/* UPDATE */
+else{
+
+await fetch(API+"/api/update-customer",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+id:selectedId,
+person:personName,
+gst:data.gst,
+audit:data.audit,
+itr:data.itr
+})
+});
+
+showLatest(data);
+alert("Customer Updated");
+}
+
+/* Reset */
+resetForm();
+await loadCustomers();
+}
+
+/* Reset */
+function resetForm(){
 
 selectedId=null;
 
@@ -214,76 +287,18 @@ person.value="";
 gst.value="";
 audit.value="";
 itr.value="";
+searchFirm.value="";
 }
 
-/* Save */
-async function save(){
-
-if(!firm.value || !person.value){
-alert("Firm & Person Mandatory");
-return;
-}
-
-const data={
-firm: sentenceCase(firm.value),
-person: sentenceCase(person.value),
-gst:+gst.value || 0,
-audit:+audit.value || 0,
-itr:+itr.value || 0
-};
-
-await fetch(API+"/api/add-customer",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify(data)
-});
-
-/* Reset */
-addNew();
-
-/* Reload */
-await loadCustomers();
-
-/* Show Last Entry */
-showLatest(data);
-
-alert("Customer Saved");
-}
-
-/* Update */
-async function update(){
-
-if(!selectedId){
-alert("Select record first");
-return;
-}
-
-await fetch(API+"/api/update-customer",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-id:selectedId,
-person: sentenceCase(person.value),
-gst:+gst.value || 0,
-audit:+audit.value || 0,
-itr:+itr.value || 0
-})
-});
-
-await loadCustomers();
-
-alert("Customer Updated");
-}
-
-/* Show Last Entry */
+/* Professional Last Entry */
 function showLatest(d){
 
 latest.innerHTML=`
-<b>Last Entry:</b><br>
+<b>Last Saved Record</b><br>
 ${d.firm} - ${d.person}<br>
-GST: ₹${d.gst} |
-Audit: ₹${d.audit} |
-ITR: ₹${d.itr}
+GST Charges: ₹${d.gst} &nbsp; | &nbsp;
+Audit Fee: ₹${d.audit} &nbsp; | &nbsp;
+ITR Fee: ₹${d.itr}
 `;
 }
 
