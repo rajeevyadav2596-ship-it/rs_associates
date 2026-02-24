@@ -1,44 +1,104 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Receipt</title>
+<title>Receipt Entry</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+font-family:Segoe UI;
+background:#eef2f7;
+padding:40px;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:12px;
+max-width:500px;
+margin:auto;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+label{
+font-weight:600;
+display:block;
+margin-top:15px;
+}
+
+input,select{
+width:100%;
+padding:10px;
+border:1px solid #ccc;
+border-radius:6px;
+margin-top:5px;
+}
+
+button{
+margin-top:20px;
+padding:12px;
+background:#1f3c88;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+width:100%;
+}
+</style>
 </head>
+
 <body>
 
+<div class="card">
+
+<h2>Receipt Entry</h2>
+
+<label>Firm</label>
 <select id="firm"></select>
-<input id="amt">
+
+<label>Amount</label>
+<input id="amount" type="number">
+
+<label>Nature</label>
 <select id="nature">
 <option>Cash</option>
 <option>Bank</option>
+<option>UPI</option>
+<option>Cheque</option>
 </select>
 
-<button onclick="save()">Save</button>
+<button onclick="save()">Save Receipt</button>
+
+</div>
 
 <script>
-
 const API="https://backend.rajeevyadav2596.workers.dev";
 
 fetch(API+"/api/customers")
 .then(r=>r.json())
 .then(d=>{
 d.forEach(c=>{
-firm.innerHTML+=`<option value="${c.id}">${c.firm_name}</option>`;
+firm.innerHTML+=
+`<option value="${c.id}">${c.firm_name}</option>`;
 });
 });
 
 function save(){
+
 fetch(API+"/api/add-receipt",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 customer_id:firm.value,
-amount:+amt.value,
+amount:+amount.value,
 nature:nature.value
 })
 });
-}
 
+alert("Receipt Saved");
+amount.value="";
+}
 </script>
+
 </body>
 </html>
