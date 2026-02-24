@@ -1,126 +1,233 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Customer Master</title>
-  <style>
-    body{
-      font-family: Arial;
-      background:#eef2f7;
-      display:flex;
-      justify-content:center;
-      padding:40px;
-    }
-    .box{
-      background:#fff;
-      padding:25px;
-      width:420px;
-      border-radius:12px;
-      box-shadow:0 5px 15px rgba(0,0,0,0.1);
-    }
-    input{
-      width:100%;
-      padding:10px;
-      margin-top:8px;
-      margin-bottom:15px;
-      border:1px solid #ccc;
-      border-radius:6px;
-    }
-    button{
-      width:100%;
-      padding:12px;
-      border:none;
-      border-radius:6px;
-      background:#2d4a8a;
-      color:#fff;
-      font-weight:bold;
-      cursor:pointer;
-      margin-top:5px;
-    }
-    .delete{
-      background:#c0392b;
-    }
-    .list{
-      background:#f7f7f7;
-      padding:10px;
-      border-radius:6px;
-      max-height:120px;
-      overflow:auto;
-      margin-bottom:15px;
-    }
-    .list div{
-      padding:5px;
-      cursor:pointer;
-    }
-    .list div:hover{
-      background:#ddd;
-    }
-  </style>
+<title>Customer Master</title>
+
+<style>
+body{
+  font-family: Arial;
+  background:#eef2f7;
+  display:flex;
+  justify-content:center;
+  padding:40px;
+}
+
+.box{
+  background:#fff;
+  padding:30px;
+  width:480px;
+  border-radius:14px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.08);
+}
+
+h2{
+  margin-bottom:15px;
+  color:#2d4a8a;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  margin-bottom:14px;
+  border:1px solid #ccc;
+  border-radius:6px;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+  margin-top:6px;
+}
+
+.save{
+  background:#2d4a8a;
+  color:white;
+}
+
+.delete{
+  background:#c0392b;
+  color:white;
+}
+
+.searchBox{
+  margin-bottom:10px;
+}
+
+.list{
+  background:#f7f7f7;
+  padding:10px;
+  border-radius:6px;
+  max-height:150px;
+  overflow:auto;
+  margin-bottom:15px;
+}
+
+.list div{
+  padding:6px;
+  cursor:pointer;
+  border-radius:4px;
+}
+
+.list div:hover{
+  background:#ddd;
+}
+</style>
 </head>
 <body>
 
 <div class="box">
+
 <h2>Customer Master</h2>
+
+<input class="searchBox" id="search" placeholder="Search Firm..." onkeyup="searchCustomer()">
 
 <div class="list" id="list"></div>
 
-<input id="firm" placeholder="Firm Name">
-<input id="person" placeholder="Person Name">
-<input id="gst" placeholder="GST Charges / Month">
-<input id="audit" placeholder="Audit Fee">
-<input id="itr" placeholder="ITR Fee">
+<label>Firm Name</label>
+<input id="firm">
 
-<button onclick="saveCustomer()">Save</button>
+<label>Person Name</label>
+<input id="person">
+
+<label>GSTIN No</label>
+<input id="gstin">
+
+<label>GST Charges / Month</label>
+<input id="gst" type="number">
+
+<label>Audit Fee</label>
+<input id="audit" type="number">
+
+<label>ITR Fee</label>
+<input id="itr" type="number">
+
+<label>Other Fee Title</label>
+<input id="otherTitle" placeholder="Example: Accounting Charges">
+
+<label>Other Fee Amount</label>
+<input id="otherAmount" type="number">
+
+<button class="save" onclick="saveCustomer()">Save / Update</button>
 <button class="delete" onclick="deleteCustomer()">Delete</button>
+
 </div>
 
 <script>
-let customers = JSON.parse(localStorage.getItem("customers")||"[]");
-let selectedIndex = null;
 
-function renderList(){
-  let list=document.getElementById("list");
-  list.innerHTML="";
-  customers.forEach((c,i)=>{
-    let d=document.createElement("div");
-    d.innerText=`${c.firm} - ${c.person}`;
-    d.onclick=()=>{
-      selectedIndex=i;
-      firm.value=c.firm;
-      person.value=c.person;
-      gst.value=c.gst;
-      audit.value=c.audit;
-      itr.value=c.itr;
-    };
-    list.appendChild(d);
-  });
-}
-renderList();
+const API = "YOUR_WORKER_URL"; // replace with your worker URL
 
-function saveCustomer(){
-  let data={
-    firm:firm.value,
-    person:person.value,
-    gst:+gst.value||0,
-    audit:+audit.value||0,
-    itr:+itr.value||0
-  };
+let customers = [];
+let selectedId = null;
 
-  if(selectedIndex!=null){
-    customers[selectedIndex]=data;
-  }else{
-    customers.push(data);
-  }
+/* ======================
+   LOAD CUSTOMERS
+====================== */
 
-  localStorage.setItem("customers",JSON.stringify(customers));
-  location.reload();
+async function loadCustomers(){
+const res = await fetch(API + "/api/customers");
+customers = await res.json();
+renderList(customers);
 }
 
-function deleteCustomer(){
-  if(selectedIndex==null) return alert("Select record");
-  customers.splice(selectedIndex,1);
-  localStorage.setItem("customers",JSON.stringify(customers));
-  location.reload();
+function renderList(data){
+let list = document.getElementById("list");
+list.innerHTML = "";
+
+data.forEach(c=>{
+let div = document.createElement("div");
+div.innerText = `${c.firm_name} - ${c.person_name}`;
+div.onclick = ()=> selectCustomer(c);
+list.appendChild(div);
+});
 }
+
+function selectCustomer(c){
+selectedId = c.id;
+
+firm.value = c.firm_name;
+person.value = c.person_name;
+gstin.value = c.gstin || "";
+gst.value = c.gst_charges || 0;
+audit.value = c.audit_fee || 0;
+itr.value = c.itr_fee || 0;
+otherTitle.value = c.other_fee_name || "";
+otherAmount.value = c.other_fee_amount || 0;
+}
+
+/* ======================
+   SEARCH
+====================== */
+
+function searchCustomer(){
+let keyword = search.value.toLowerCase();
+
+let filtered = customers.filter(c =>
+c.firm_name.toLowerCase().includes(keyword)
+);
+
+renderList(filtered);
+}
+
+/* ======================
+   SAVE
+====================== */
+
+async function saveCustomer(){
+
+const data = {
+firm: firm.value,
+person: person.value,
+gstin: gstin.value,
+gst: +gst.value || 0,
+audit: +audit.value || 0,
+itr: +itr.value || 0,
+other_name: otherTitle.value,
+other_amount: +otherAmount.value || 0
+};
+
+await fetch(API + "/api/add-customer",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body: JSON.stringify(data)
+});
+
+alert("Saved Successfully");
+location.reload();
+}
+
+/* ======================
+   DELETE (CONFIRM)
+====================== */
+
+async function deleteCustomer(){
+
+if(!selectedId){
+alert("Select customer first");
+return;
+}
+
+if(!confirm("Are you sure you want to delete this customer?")){
+return;
+}
+
+await fetch(API + "/api/delete-customer",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body: JSON.stringify({ id:selectedId })
+});
+
+alert("Deleted Successfully");
+location.reload();
+}
+
+loadCustomers();
+
 </script>
+
 </body>
 </html>
