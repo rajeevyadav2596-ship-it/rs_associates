@@ -1,151 +1,16 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Ledger Dashboard</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<style>
-
-body{
-font-family:Segoe UI;
-background:#eef2f7;
-padding:20px;
-}
-
-.card{
-background:white;
-padding:20px;
-border-radius:12px;
-max-width:1000px;
-margin:auto;
-box-shadow:0 4px 14px rgba(0,0,0,0.1);
-}
-
-h2{margin-top:0;color:#1f3c88;}
-
-select{
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
-width:100%;
-margin-top:10px;
-}
-
-button{
-margin-top:12px;
-padding:10px 16px;
-background:#1f3c88;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:20px;
-font-size:14px;
-}
-
-th,td{
-border:1px solid #ddd;
-padding:8px;
-text-align:center;
-}
-
-th{
-background:#1f3c88;
-color:white;
-}
-
-tr:nth-child(even){
-background:#f7f9ff;
-}
-
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-<h2>Ledger Dashboard</h2>
-
-<label>Select Firm</label>
-<select id="firmSelect"></select>
-
-<button onclick="loadLedger()">Search Ledger</button>
-<button onclick="downloadPDF()">Copy / Download PDF</button>
-
-<div id="ledgerBox">
-
-<table>
-<thead>
-<tr>
-<th>Date</th>
-<th>Particulars</th>
-<th>Invoice</th>
-<th>Receipt</th>
-<th>Closing Balance</th>
-</tr>
-</thead>
-
-<tbody id="tbody"></tbody>
-
-</table>
-
-</div>
-
-</div>
-
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 
-let customers=[];
-
-/* Load Firms */
-async function loadCustomers(){
-
-const res=await fetch(API+"/api/customers");
-customers=await res.json();
-
-firmSelect.innerHTML="<option value=''>Select Firm</option>";
-
-customers.forEach(c=>{
-firmSelect.innerHTML+=
-`<option value="${c.id}">
-${c.firm_name}
-</option>`;
-});
-}
-
-loadCustomers();
-
-/* Load Ledger */
+/* LOAD LEDGER */
 async function loadLedger(){
 
 const id=firmSelect.value;
 
-if(!id){
-alert("Select Firm");
-return;
-}
-
-/* Combined API */
 const res=await fetch(API+"/api/ledger-dashboard");
 const data=await res.json();
 
-/* Filter Firm */
 const firmData=data.filter(x=>x.customer_id==id);
-
-/* Sort Date */
-firmData.sort((a,b)=>new Date(a.date)-new Date(b.date));
 
 let balance=0;
 tbody.innerHTML="";
@@ -156,26 +21,21 @@ let particular="";
 let invoice="";
 let receipt="";
 
-/* Invoice Row */
 if(d.invoice_amount>0){
 
 particular=
-monthText(d.period_from) +
-" to " +
+monthText(d.period_from)+" to "+
 monthText(d.period_to);
 
 invoice="₹"+d.invoice_amount;
 balance+=d.invoice_amount;
-
 }
 
-/* Receipt Row */
 if(d.receipt_amount>0){
 
 particular=d.type;
 receipt="₹"+d.receipt_amount;
 balance-=d.receipt_amount;
-
 }
 
 tbody.innerHTML+=`
@@ -185,46 +45,18 @@ tbody.innerHTML+=`
 <td>${invoice}</td>
 <td>${receipt}</td>
 <td>₹${balance}</td>
-</tr>
-`;
-
+</tr>`;
 });
 
 }
 
-/* Month Format */
 function monthText(m){
-
 if(!m) return "";
-
-const d=new Date(m);
-
-return d.toLocaleString("en-GB",{
-month:"short",
-year:"2-digit"
-});
+return new Date(m).toLocaleString("en-GB",{month:"short",year:"2-digit"});
 }
 
-/* Date Format */
-function formatDate(dt){
-
-return new Date(dt).toLocaleDateString("en-GB");
-}
-
-/* PDF */
-async function downloadPDF(){
-
-const canvas=await html2canvas(ledgerBox);
-const img=canvas.toDataURL("image/png");
-
-const { jsPDF }=window.jspdf;
-const pdf=new jsPDF();
-
-pdf.addImage(img,"PNG",10,10,190,0);
-pdf.save("Ledger.pdf");
+function formatDate(d){
+return new Date(d).toLocaleDateString("en-GB");
 }
 
 </script>
-
-</body>
-</html>
