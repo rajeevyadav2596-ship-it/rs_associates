@@ -3,130 +3,190 @@
 <head>
 <title>Customer Master</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
+
+/* ===== Layout ===== */
+
 body{
-font-family:Arial;
-background:#eef2f7;
-display:flex;
-justify-content:center;
-padding:40px;
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:#eef2f7;
 }
 
-.box{
-background:#fff;
-padding:30px;
-width:500px;
-border-radius:14px;
-box-shadow:0 8px 25px rgba(0,0,0,0.08);
+/* Header */
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#1f3c88;
+  color:white;
+  padding:15px 20px;
 }
 
-h2{
-text-align:center;
-color:#2d4a8a;
+.header h2{
+  margin:0;
+  font-weight:500;
 }
 
-input{
-width:100%;
-padding:10px;
-margin-top:6px;
-margin-bottom:14px;
-border:1px solid #ccc;
-border-radius:6px;
+.header a{
+  color:white;
+  text-decoration:none;
+  font-size:14px;
 }
+
+/* Container */
+
+.container{
+  max-width:700px;
+  margin:30px auto;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  padding:25px;
+  border-radius:14px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.08);
+}
+
+/* Inputs */
+
+label{
+  font-size:14px;
+  color:#333;
+}
+
+input, select{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  margin-bottom:14px;
+  border:1px solid #ccc;
+  border-radius:6px;
+  font-size:14px;
+}
+
+/* Buttons */
 
 button{
-width:100%;
-padding:12px;
-border:none;
-border-radius:6px;
-font-weight:bold;
-cursor:pointer;
-margin-top:6px;
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:6px;
+  font-weight:600;
+  cursor:pointer;
+  margin-top:6px;
 }
 
 .save{ background:#2d4a8a; color:white; }
 .delete{ background:#c0392b; color:white; }
 
-.list{
-background:#f7f7f7;
-padding:10px;
-border-radius:6px;
-max-height:150px;
-overflow:auto;
-margin-bottom:15px;
+/* Mobile */
+
+@media(max-width:600px){
+
+  .header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:8px;
+  }
+
 }
 
-.list div{
-padding:6px;
-cursor:pointer;
-}
-
-.list div:hover{
-background:#ddd;
-}
 </style>
 </head>
+
 <body>
 
-<div class="box">
+<!-- Header -->
+<div class="header">
+  <h2>Customer Master</h2>
+  <a href="index.html">← Back To Dashboard</a>
+</div>
 
-<h2>Customer Master</h2>
+<div class="container">
+<div class="card">
 
-<input id="search" placeholder="Search Firm..." onkeyup="searchCustomer()">
+<!-- Party Dropdown -->
+<label>Select Party</label>
+<select id="partyDropdown" onchange="selectCustomer()">
+<option value="">-- Select Customer --</option>
+</select>
 
-<div class="list" id="list"></div>
+<label>Firm Name</label>
+<input id="firm">
 
-<input id="firm" placeholder="Firm Name">
-<input id="person" placeholder="Person Name">
-<input id="gstin" placeholder="GSTIN No">
+<label>Person Name</label>
+<input id="person">
 
-<input id="gst" placeholder="GST Charges / Month" type="number">
-<input id="audit" placeholder="Audit Fee" type="number">
-<input id="itr" placeholder="ITR Fee" type="number">
+<label>GSTIN No</label>
+<input id="gstin">
 
-<input id="otherTitle" placeholder="Other Fee Title">
-<input id="otherAmount" placeholder="Other Fee Amount" type="number">
+<label>GST Charges / Month</label>
+<input id="gst" type="number">
+
+<label>Audit Fee</label>
+<input id="audit" type="number">
+
+<label>ITR Fee</label>
+<input id="itr" type="number">
+
+<label>Other Fee Title</label>
+<input id="otherTitle">
+
+<label>Other Fee Amount</label>
+<input id="otherAmount" type="number">
 
 <button class="save" onclick="saveCustomer()">Save / Update</button>
 <button class="delete" onclick="deleteCustomer()">Delete</button>
 
 </div>
+</div>
 
 <script>
 
-/* ====== PUT YOUR WORKER URL ====== */
 const API = "https://backend.rajeevyadav2596.workers.dev";
 
-let customers = [];
-let selectedId = null;
+let customers=[];
+let selectedId=null;
 
-/* LOAD CUSTOMERS */
+/* Load Customers */
 async function loadCustomers(){
 
-const res = await fetch(API + "/api/customers");
+const res = await fetch(API+"/api/customers");
 customers = await res.json();
-renderList(customers);
 
-}
+partyDropdown.innerHTML =
+'<option value="">-- Select Customer --</option>';
 
-/* RENDER LIST */
-function renderList(data){
+customers.forEach(c=>{
 
-list.innerHTML="";
+partyDropdown.innerHTML +=
+`<option value="${c.id}">
+${sentenceCase(c.firm_name)} - ${sentenceCase(c.person_name)}
+</option>`;
 
-data.forEach(c=>{
-let div=document.createElement("div");
-div.innerText=`${c.firm_name} - ${c.person_name}`;
-div.onclick=()=>selectCustomer(c);
-list.appendChild(div);
 });
 
 }
 
-/* SELECT CUSTOMER */
-function selectCustomer(c){
+/* Sentence Case */
+function sentenceCase(str){
+return str.replace(/\w\S*/g,
+w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());
+}
 
-selectedId=c.id;
+/* Select Customer */
+function selectCustomer(){
+
+const id = partyDropdown.value;
+if(!id) return;
+
+const c = customers.find(x=>x.id==id);
+selectedId = id;
 
 firm.value=c.firm_name;
 person.value=c.person_name;
@@ -139,20 +199,7 @@ otherAmount.value=c.other_fee_amount||0;
 
 }
 
-/* SEARCH */
-function searchCustomer(){
-
-let k=search.value.toLowerCase();
-
-renderList(
-customers.filter(c=>
-c.firm_name.toLowerCase().includes(k)
-)
-);
-
-}
-
-/* SAVE */
+/* Save */
 async function saveCustomer(){
 
 await fetch(API+"/api/add-customer",{
@@ -176,7 +223,7 @@ location.reload();
 
 }
 
-/* DELETE */
+/* Delete */
 async function deleteCustomer(){
 
 if(!selectedId) return alert("Select customer");
