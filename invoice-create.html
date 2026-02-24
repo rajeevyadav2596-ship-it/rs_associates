@@ -1,97 +1,223 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Create Invoice</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RS Associates Invoice</title>
+
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
 <style>
-body{font-family:Segoe UI;background:#eef2f7;padding:20px}
-.card{background:white;padding:20px;border-radius:12px;max-width:700px;margin:auto}
-input,select{width:100%;padding:10px;margin-top:8px}
-button{margin-top:15px;padding:12px;background:#1f3c88;color:white;border:none;border-radius:8px;width:100%}
-.invoice{margin-top:20px;padding:20px;border:1px solid #ccc}
+body{
+  font-family:Arial;
+  background:#eef2f7;
+  padding:30px;
+}
+.container{
+  background:#fff;
+  padding:25px;
+  border-radius:12px;
+  max-width:700px;
+  margin:auto;
+  box-shadow:0 5px 20px rgba(0,0,0,0.1);
+}
+input,select{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  margin-bottom:15px;
+  border:1px solid #ccc;
+  border-radius:6px;
+}
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:6px;
+  background:#2d4a8a;
+  color:#fff;
+  font-weight:bold;
+  margin-top:10px;
+  cursor:pointer;
+}
+
+/* Invoice Design */
+
+.invoiceBox{
+  width:800px;
+  background:#fff;
+  padding:30px;
+  margin-top:30px;
+  border-radius:12px;
+  box-shadow:0 0 10px rgba(0,0,0,0.15);
+}
+.header{
+  display:flex;
+  justify-content:space-between;
+  border-bottom:2px solid #2d4a8a;
+  padding-bottom:10px;
+  margin-bottom:20px;
+}
+.title{
+  font-size:26px;
+  font-weight:bold;
+  color:#2d4a8a;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+td,th{
+  padding:10px;
+  border-bottom:1px solid #ddd;
+}
+.total{
+  font-size:20px;
+  font-weight:bold;
+}
 </style>
 </head>
-
 <body>
-<div class="card">
 
-<h2>Create Invoice</h2>
+<div class="container">
 
-<label>Firm</label>
-<select id="firm"></select>
+<h2>RS Associates — Invoice</h2>
 
-<label>GST</label>
-<input id="gst" type="number">
+<select id="firmSelect" onchange="loadCustomer()"></select>
 
-<label>Audit</label>
-<input id="audit">
+<input id="person" placeholder="Person Name">
 
-<label>ITR</label>
-<input id="itr">
+<input id="invoiceNo" placeholder="Invoice No">
 
-<label>Other</label>
-<input id="other">
+<input id="gstFee" placeholder="GST Fee">
+<input id="auditFee" placeholder="Audit Fee">
+<input id="itrFee" placeholder="ITR Fee">
 
-<button onclick="generate()">Generate</button>
-<button onclick="copyJPG()">Copy JPG</button>
+<h4>Other Expenses</h4>
 
-<div id="box" class="invoice" style="display:none"></div>
+<input id="other1Name" placeholder="Expense Header">
+<input id="other1Amt" placeholder="Amount">
+
+<input id="other2Name" placeholder="Expense Header">
+<input id="other2Amt" placeholder="Amount">
+
+<button onclick="generateInvoice()">Generate Invoice</button>
+<button onclick="downloadJPG()">Copy Invoice JPG</button>
+
+</div>
+
+<!-- INVOICE JPG AREA -->
+
+<div id="invoice" class="invoiceBox">
+
+<div class="header">
+<div>
+<div class="title">RS Associates</div>
+<div>Professional Services</div>
+</div>
+
+<div>
+<div><b>Invoice No:</b> <span id="invNo"></span></div>
+<div><b>Date:</b> <span id="invDate"></span></div>
+</div>
+</div>
+
+<div>
+<b>Client:</b> <span id="clientName"></span><br>
+<b>Person:</b> <span id="clientPerson"></span>
+</div>
+
+<br>
+
+<table>
+<thead>
+<tr>
+<th>Particular</th>
+<th>Amount ₹</th>
+</tr>
+</thead>
+
+<tbody id="billBody"></tbody>
+
+<tfoot>
+<tr>
+<td>GST 18%</td>
+<td id="gstAmt"></td>
+</tr>
+
+<tr class="total">
+<td>Total</td>
+<td id="grandTotal"></td>
+</tr>
+</tfoot>
+</table>
 
 </div>
 
 <script>
 
-const API="https://backend.rajeevyadav2596.workers.dev";
-let customers=[];
+let customers=JSON.parse(localStorage.getItem("customers")||"[]");
 
-fetch(API+"/api/customers")
-.then(r=>r.json())
-.then(d=>{
-customers=d;
-d.forEach(c=>{
-firm.innerHTML+=`<option value="${c.id}">${c.firm_name}</option>`;
-});
+customers.forEach((c,i)=>{
+  firmSelect.innerHTML+=
+  `<option value="${i}">
+   ${c.firm} - ${c.person}
+   </option>`;
 });
 
-function invNo(){
-let n=localStorage.inv||0;n++;
-localStorage.inv=n;
-return "RS-"+n;
+function loadCustomer(){
+  let c=customers[firmSelect.value];
+  person.value=c.person;
+  gstFee.value=c.gst;
+  auditFee.value=c.audit;
+  itrFee.value=c.itr;
+}
+loadCustomer();
+
+function generateInvoice(){
+
+let gst=+gstFee.value||0;
+let audit=+auditFee.value||0;
+let itr=+itrFee.value||0;
+let o1=+other1Amt.value||0;
+let o2=+other2Amt.value||0;
+
+let subtotal=gst+audit+itr+o1+o2;
+let gstCalc=subtotal*0.18;
+let total=subtotal+gstCalc;
+
+invNo.innerText=invoiceNo.value;
+invDate.innerText=new Date().toLocaleDateString();
+
+clientName.innerText=
+firmSelect.options[firmSelect.selectedIndex].text;
+
+clientPerson.innerText=person.value;
+
+billBody.innerHTML=`
+<tr><td>GST Filing Fees</td><td>${gst}</td></tr>
+<tr><td>Audit Fees</td><td>${audit}</td></tr>
+<tr><td>ITR Filing</td><td>${itr}</td></tr>
+<tr><td>${other1Name.value}</td><td>${o1}</td></tr>
+<tr><td>${other2Name.value}</td><td>${o2}</td></tr>
+`;
+
+gstAmt.innerText="₹ "+gstCalc.toFixed(2);
+grandTotal.innerText="₹ "+total.toFixed(2);
 }
 
-async function generate(){
+function downloadJPG(){
 
-const no=invNo();
-const total=+gst.value+ +audit.value+ +itr.value+ +other.value;
+html2canvas(document.getElementById("invoice"))
+.then(canvas=>{
+  let link=document.createElement("a");
+  link.download="Invoice.jpg";
+  link.href=canvas.toDataURL();
+  link.click();
 
-await fetch(API+"/api/add-invoice",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-customer_id:firm.value,
-invoice_no:no,
-from:"",
-to:"",
-gst_total:+gst.value,
-audit_total:+audit.value,
-itr_total:+itr.value,
-other_total:+other.value,
-final_total:total
-})
-});
-
-box.style.display="block";
-box.innerHTML=`Invoice ${no}<br>Total ₹${total}`;
-}
-
-function copyJPG(){
-html2canvas(box).then(c=>{
-navigator.clipboard.write([
-new ClipboardItem({"image/png":c.toBlob(()=>{})})
-]);
+  // AUTO OPEN
+  window.open(link.href);
 });
 }
 </script>
+
 </body>
 </html>
