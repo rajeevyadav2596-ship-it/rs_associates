@@ -24,13 +24,6 @@ margin:auto;
 box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* Mobile */
-@media(max-width:600px){
-.card{
-padding:15px;
-}
-}
-
 /* Inputs */
 label{
 font-weight:600;
@@ -38,7 +31,7 @@ display:block;
 margin-top:14px;
 }
 
-input,select{
+input{
 width:100%;
 padding:10px;
 border:1px solid #ccc;
@@ -55,7 +48,7 @@ flex-wrap:wrap;
 
 button{
 margin-top:18px;
-padding:10px 16px;
+padding:10px;
 background:#1f3c88;
 color:white;
 border:none;
@@ -68,9 +61,9 @@ button:hover{
 background:#162c66;
 }
 
-/* Dropdown table style */
+/* Dropdown */
 .dropdown{
-margin-top:8px;
+margin-top:6px;
 max-height:150px;
 overflow:auto;
 border:1px solid #ccc;
@@ -89,6 +82,15 @@ cursor:pointer;
 background:#f1f5ff;
 }
 
+/* Last entry */
+.latest{
+margin-top:20px;
+background:#f7f9ff;
+padding:10px;
+border-radius:8px;
+font-size:14px;
+}
+
 </style>
 </head>
 
@@ -98,18 +100,18 @@ background:#f1f5ff;
 
 <h2>Customer Master</h2>
 
-<!-- Select Existing -->
+<!-- Search -->
 <label>Select Customer</label>
 <input id="searchFirm" placeholder="Search Firm..." onkeyup="filterFirm()">
 <div id="dropdown" class="dropdown"></div>
 
 <!-- Firm -->
 <label>Firm Name *</label>
-<input id="firm" required>
+<input id="firm">
 
 <!-- Person -->
 <label>Person Name *</label>
-<input id="person" required>
+<input id="person">
 
 <!-- Charges -->
 <label>GST Charges (Per Month)</label>
@@ -128,6 +130,9 @@ background:#f1f5ff;
 <button onclick="update()">Modify</button>
 </div>
 
+<!-- Last Entry -->
+<div id="latest" class="latest"></div>
+
 </div>
 
 <script>
@@ -135,6 +140,14 @@ background:#f1f5ff;
 const API="https://backend.rajeevyadav2596.workers.dev";
 
 let customers=[];
+let selectedId=null;
+
+/* Sentence Case */
+function sentenceCase(str){
+return str
+.toLowerCase()
+.replace(/\b\w/g, l => l.toUpperCase());
+}
 
 /* Load Customers */
 async function loadCustomers(){
@@ -142,13 +155,13 @@ async function loadCustomers(){
 const res=await fetch(API+"/api/customers");
 customers=await res.json();
 
-showDropdown(customers);
+renderList(customers);
 }
 
 loadCustomers();
 
-/* Show Dropdown */
-function showDropdown(list){
+/* Render Dropdown */
+function renderList(list){
 
 dropdown.innerHTML="";
 dropdown.style.display="block";
@@ -157,14 +170,11 @@ list.forEach(c=>{
 
 const row=document.createElement("div");
 
-row.innerText=`${c.firm} - ${c.person}`;
+row.innerText=`${c.firm_name} - ${c.person_name}`;
 
-row.onclick=()=>{
-selectCustomer(c);
-};
+row.onclick=()=>selectCustomer(c);
 
 dropdown.appendChild(row);
-
 });
 }
 
@@ -174,26 +184,30 @@ function filterFirm(){
 const text=searchFirm.value.toLowerCase();
 
 const filtered=customers.filter(c=>
-c.firm.toLowerCase().includes(text)
+c.firm_name.toLowerCase().includes(text)
 );
 
-showDropdown(filtered);
+renderList(filtered);
 }
 
 /* Select Existing */
 function selectCustomer(c){
 
-firm.value=c.firm;
-person.value=c.person;
-gst.value=c.gst;
-audit.value=c.audit;
-itr.value=c.itr;
+selectedId=c.id;
+
+firm.value=c.firm_name;
+person.value=c.person_name;
+gst.value=c.gst_charges;
+audit.value=c.audit_fee;
+itr.value=c.itr_fee;
 
 dropdown.style.display="none";
 }
 
 /* Add New */
 function addNew(){
+
+selectedId=null;
 
 firm.value="";
 person.value="";
@@ -203,44 +217,74 @@ itr.value="";
 }
 
 /* Save */
-function save(){
+async function save(){
 
 if(!firm.value || !person.value){
-alert("Firm & Person Name Mandatory");
+alert("Firm & Person Mandatory");
 return;
 }
 
-fetch(API+"/api/add-customer",{
+const data={
+firm: sentenceCase(firm.value),
+person: sentenceCase(person.value),
+gst:+gst.value || 0,
+audit:+audit.value || 0,
+itr:+itr.value || 0
+};
+
+await fetch(API+"/api/add-customer",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-firm:firm.value,
-person:person.value,
-gst:+gst.value,
-audit:+audit.value,
-itr:+itr.value
-})
+body:JSON.stringify(data)
 });
 
-alert("Customer Added");
+/* Reset */
+addNew();
+
+/* Reload */
+await loadCustomers();
+
+/* Show Last Entry */
+showLatest(data);
+
+alert("Customer Saved");
 }
 
-/* Modify */
-function update(){
+/* Update */
+async function update(){
 
-fetch(API+"/api/update-customer",{
+if(!selectedId){
+alert("Select record first");
+return;
+}
+
+await fetch(API+"/api/update-customer",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
-firm:firm.value,
-person:person.value,
-gst:+gst.value,
-audit:+audit.value,
-itr:+itr.value
+id:selectedId,
+person: sentenceCase(person.value),
+gst:+gst.value || 0,
+audit:+audit.value || 0,
+itr:+itr.value || 0
 })
 });
 
+await loadCustomers();
+
 alert("Customer Updated");
+}
+
+/* Show Last Entry */
+function showLatest(d){
+
+latest.innerHTML=`
+<b>Last Entry:</b><br>
+${d.firm} - ${d.person}<br>
+GST: ₹${d.gst} |
+Audit: ₹${d.audit} |
+ITR: ₹${d.itr}
+`;
 }
 
 </script>
