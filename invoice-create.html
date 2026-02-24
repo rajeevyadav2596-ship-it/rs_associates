@@ -1,148 +1,145 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>RS Associates Invoice</title>
+<title>Create Invoice</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
+
 body{
-  font-family:Arial;
-  background:#eef2f7;
-  padding:30px;
-}
-.container{
-  background:#fff;
-  padding:25px;
-  border-radius:12px;
-  max-width:700px;
-  margin:auto;
-  box-shadow:0 5px 20px rgba(0,0,0,0.1);
-}
-input,select{
-  width:100%;
-  padding:10px;
-  margin-top:8px;
-  margin-bottom:15px;
-  border:1px solid #ccc;
-  border-radius:6px;
-}
-button{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:6px;
-  background:#2d4a8a;
-  color:#fff;
-  font-weight:bold;
-  margin-top:10px;
-  cursor:pointer;
+font-family:'Segoe UI';
+background:#eef2f7;
+margin:0;
 }
 
-/* Invoice Design */
+.container{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:14px;
+box-shadow:0 6px 20px rgba(0,0,0,0.08);
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin-top:6px;
+margin-bottom:14px;
+border:1px solid #ccc;
+border-radius:6px;
+}
+
+button{
+width:100%;
+padding:12px;
+border:none;
+border-radius:6px;
+background:#2d4a8a;
+color:white;
+font-weight:600;
+cursor:pointer;
+margin-top:8px;
+}
+
+/* INVOICE DESIGN */
 
 .invoiceBox{
-  width:800px;
-  background:#fff;
-  padding:30px;
-  margin-top:30px;
-  border-radius:12px;
-  box-shadow:0 0 10px rgba(0,0,0,0.15);
+background:white;
+padding:30px;
+margin-top:30px;
+border-radius:14px;
 }
-.header{
-  display:flex;
-  justify-content:space-between;
-  border-bottom:2px solid #2d4a8a;
-  padding-bottom:10px;
-  margin-bottom:20px;
+
+.invHeader{
+display:flex;
+justify-content:space-between;
+border-bottom:2px solid #ddd;
+padding-bottom:10px;
+margin-bottom:20px;
 }
-.title{
-  font-size:26px;
-  font-weight:bold;
-  color:#2d4a8a;
+
+.invNo{
+color:red;
+font-weight:bold;
+font-size:20px;
 }
+
 table{
-  width:100%;
-  border-collapse:collapse;
+width:100%;
+border-collapse:collapse;
 }
+
 td,th{
-  padding:10px;
-  border-bottom:1px solid #ddd;
+padding:10px;
+border-bottom:1px solid #ddd;
 }
+
 .total{
-  font-size:20px;
-  font-weight:bold;
+font-weight:bold;
+font-size:18px;
 }
+
 </style>
 </head>
+
 <body>
 
 <div class="container">
 
-<h2>RS Associates — Invoice</h2>
+<div class="card">
 
-<select id="firmSelect" onchange="loadCustomer()"></select>
+<h2>Create Invoice</h2>
+
+<select id="party" onchange="loadCustomer()"></select>
 
 <input id="person" placeholder="Person Name">
+<input id="gstin" placeholder="GSTIN">
 
-<input id="invoiceNo" placeholder="Invoice No">
+<label>From</label>
+<input type="month" id="from">
 
-<input id="gstFee" placeholder="GST Fee">
+<label>To</label>
+<input type="month" id="to">
+
+<input id="gstFee" placeholder="GST Charges / Month">
 <input id="auditFee" placeholder="Audit Fee">
 <input id="itrFee" placeholder="ITR Fee">
-
-<h4>Other Expenses</h4>
-
-<input id="other1Name" placeholder="Expense Header">
-<input id="other1Amt" placeholder="Amount">
-
-<input id="other2Name" placeholder="Expense Header">
-<input id="other2Amt" placeholder="Amount">
+<input id="otherTitle" placeholder="Other Title">
+<input id="otherAmt" placeholder="Other Amount">
 
 <button onclick="generateInvoice()">Generate Invoice</button>
-<button onclick="downloadJPG()">Copy Invoice JPG</button>
+<button onclick="saveInvoice()">Save Invoice</button>
+<button onclick="downloadJPG()">Open JPG</button>
 
 </div>
 
-<!-- INVOICE JPG AREA -->
+<!-- INVOICE PREVIEW -->
 
 <div id="invoice" class="invoiceBox">
 
-<div class="header">
+<div class="invHeader">
 <div>
-<div class="title">RS Associates</div>
-<div>Professional Services</div>
+<h3>RS Associates</h3>
+<div id="invParty"></div>
+<div id="invGSTIN"></div>
 </div>
 
 <div>
-<div><b>Invoice No:</b> <span id="invNo"></span></div>
-<div><b>Date:</b> <span id="invDate"></span></div>
+<div class="invNo" id="invNo">RS-000</div>
+<div id="invPeriod"></div>
 </div>
 </div>
-
-<div>
-<b>Client:</b> <span id="clientName"></span><br>
-<b>Person:</b> <span id="clientPerson"></span>
-</div>
-
-<br>
 
 <table>
-<thead>
-<tr>
-<th>Particular</th>
-<th>Amount ₹</th>
-</tr>
-</thead>
-
 <tbody id="billBody"></tbody>
-
 <tfoot>
-<tr>
-<td>GST 18%</td>
-<td id="gstAmt"></td>
-</tr>
-
 <tr class="total">
 <td>Total</td>
 <td id="grandTotal"></td>
@@ -152,71 +149,137 @@ td,th{
 
 </div>
 
+</div>
+
 <script>
 
-let customers=JSON.parse(localStorage.getItem("customers")||"[]");
+const API="https://backend.rajeevyadav2596.workers.dev";
 
-customers.forEach((c,i)=>{
-  firmSelect.innerHTML+=
-  `<option value="${i}">
-   ${c.firm} - ${c.person}
-   </option>`;
+let customers=[];
+
+/* LOAD CUSTOMERS */
+async function init(){
+
+const res=await fetch(API+"/api/customers");
+customers=await res.json();
+
+party.innerHTML='<option>Select Party</option>';
+
+customers.forEach(c=>{
+party.innerHTML+=
+`<option value="${c.id}">
+${c.firm_name} - ${c.person_name}
+</option>`;
 });
 
-function loadCustomer(){
-  let c=customers[firmSelect.value];
-  person.value=c.person;
-  gstFee.value=c.gst;
-  auditFee.value=c.audit;
-  itrFee.value=c.itr;
 }
-loadCustomer();
 
+function loadCustomer(){
+
+const c=customers.find(x=>x.id==party.value);
+
+person.value=c.person_name;
+gstin.value=c.gstin;
+gstFee.value=c.gst_charges;
+auditFee.value=c.audit_fee;
+itrFee.value=c.itr_fee;
+otherTitle.value=c.other_fee_name;
+otherAmt.value=c.other_fee_amount;
+
+}
+
+/* MONTH CALC */
+function monthDiff(a,b){
+
+const d1=new Date(a);
+const d2=new Date(b);
+
+return (d2.getFullYear()-d1.getFullYear())*12 +
+(d2.getMonth()-d1.getMonth())+1;
+
+}
+
+/* GENERATE PREVIEW */
 function generateInvoice(){
 
-let gst=+gstFee.value||0;
-let audit=+auditFee.value||0;
-let itr=+itrFee.value||0;
-let o1=+other1Amt.value||0;
-let o2=+other2Amt.value||0;
+const months=monthDiff(from.value,to.value);
 
-let subtotal=gst+audit+itr+o1+o2;
-let gstCalc=subtotal*0.18;
-let total=subtotal+gstCalc;
+const gstTotal=months*gstFee.value;
 
-invNo.innerText=invoiceNo.value;
-invDate.innerText=new Date().toLocaleDateString();
+const total=
++gstTotal+
++auditFee.value+
++itrFee.value+
++otherAmt.value;
 
-clientName.innerText=
-firmSelect.options[firmSelect.selectedIndex].text;
-
-clientPerson.innerText=person.value;
+invParty.innerText=party.options[party.selectedIndex].text;
+invGSTIN.innerText="GSTIN: "+gstin.value;
+invPeriod.innerText=from.value+" → "+to.value;
 
 billBody.innerHTML=`
-<tr><td>GST Filing Fees</td><td>${gst}</td></tr>
-<tr><td>Audit Fees</td><td>${audit}</td></tr>
-<tr><td>ITR Filing</td><td>${itr}</td></tr>
-<tr><td>${other1Name.value}</td><td>${o1}</td></tr>
-<tr><td>${other2Name.value}</td><td>${o2}</td></tr>
+<tr><td>GST Filing (${months} Months)</td><td>₹${gstTotal}</td></tr>
+<tr><td>Audit</td><td>₹${auditFee.value}</td></tr>
+<tr><td>ITR</td><td>₹${itrFee.value}</td></tr>
+<tr><td>${otherTitle.value}</td><td>₹${otherAmt.value}</td></tr>
 `;
 
-gstAmt.innerText="₹ "+gstCalc.toFixed(2);
-grandTotal.innerText="₹ "+total.toFixed(2);
+grandTotal.innerText="₹ "+total;
+
 }
 
+/* SAVE */
+async function saveInvoice(){
+
+const months=monthDiff(from.value,to.value);
+const gstTotal=months*gstFee.value;
+
+const total=
++gstTotal+
++auditFee.value+
++itrFee.value+
++otherAmt.value;
+
+const res=await fetch(API+"/api/add-invoice",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+customer_id:party.value,
+from:from.value,
+to:to.value,
+months,
+gst_rate:gstFee.value,
+gst_total:gstTotal,
+audit_total:auditFee.value,
+itr_total:itrFee.value,
+other_name:otherTitle.value,
+other_amount:otherAmt.value,
+final_total:total
+})
+});
+
+const data=await res.json();
+invNo.innerText=data.invoice_no;
+
+alert("Invoice Saved");
+
+}
+
+/* JPG */
 function downloadJPG(){
 
 html2canvas(document.getElementById("invoice"))
 .then(canvas=>{
-  let link=document.createElement("a");
-  link.download="Invoice.jpg";
-  link.href=canvas.toDataURL();
-  link.click();
-
-  // AUTO OPEN
-  window.open(link.href);
+const link=document.createElement("a");
+link.href=canvas.toDataURL();
+link.download="Invoice.jpg";
+link.click();
+window.open(link.href);
 });
+
 }
+
+init();
+
 </script>
 
 </body>
