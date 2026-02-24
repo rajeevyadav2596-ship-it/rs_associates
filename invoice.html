@@ -30,8 +30,7 @@ box-shadow:0 6px 20px rgba(0,0,0,0.08);
 input,select{
 width:100%;
 padding:10px;
-margin-top:6px;
-margin-bottom:14px;
+margin-bottom:12px;
 border:1px solid #ccc;
 border-radius:6px;
 }
@@ -44,11 +43,11 @@ border-radius:6px;
 background:#2d4a8a;
 color:white;
 font-weight:600;
-cursor:pointer;
 margin-top:8px;
+cursor:pointer;
 }
 
-/* INVOICE DESIGN */
+/* ===== INVOICE DESIGN ===== */
 
 .invoiceBox{
 background:white;
@@ -57,12 +56,30 @@ margin-top:30px;
 border-radius:14px;
 }
 
-.invHeader{
+.header{
 display:flex;
 justify-content:space-between;
 border-bottom:2px solid #ddd;
 padding-bottom:10px;
-margin-bottom:20px;
+}
+
+.party{
+color:green;
+font-weight:bold;
+font-size:18px;
+text-transform:capitalize;
+}
+
+.gstin{
+font-weight:bold;
+}
+
+.invMeta{
+text-align:right;
+}
+
+.invDate{
+font-size:14px;
 }
 
 .invNo{
@@ -71,12 +88,24 @@ font-weight:bold;
 font-size:20px;
 }
 
+.period{
+color:#1f3c88;
+font-weight:600;
+}
+
 table{
 width:100%;
 border-collapse:collapse;
+margin-top:20px;
 }
 
-td,th{
+th{
+text-align:left;
+border-bottom:2px solid #000;
+padding:10px;
+}
+
+td{
 padding:10px;
 border-bottom:1px solid #ddd;
 }
@@ -99,8 +128,8 @@ font-size:18px;
 
 <select id="party" onchange="loadCustomer()"></select>
 
-<input id="person" placeholder="Person Name">
-<input id="gstin" placeholder="GSTIN">
+<input id="person">
+<input id="gstin">
 
 <label>From</label>
 <input type="month" id="from">
@@ -108,43 +137,60 @@ font-size:18px;
 <label>To</label>
 <input type="month" id="to">
 
-<input id="gstFee" placeholder="GST Charges / Month">
-<input id="auditFee" placeholder="Audit Fee">
-<input id="itrFee" placeholder="ITR Fee">
-<input id="otherTitle" placeholder="Other Title">
-<input id="otherAmt" placeholder="Other Amount">
+<input id="gstFee" placeholder="GST / Month">
+<input id="auditFee" placeholder="Audit">
+<input id="itrFee" placeholder="ITR">
+
+<input id="otherTitle">
+<input id="otherAmt">
+
+<input id="other2Title">
+<input id="other2Amt">
 
 <button onclick="generateInvoice()">Generate Invoice</button>
 <button onclick="saveInvoice()">Save Invoice</button>
-<button onclick="downloadJPG()">Open JPG</button>
+<button onclick="openJPG()">Open JPG</button>
 
 </div>
 
-<!-- INVOICE PREVIEW -->
+<!-- ===== INVOICE ===== -->
 
 <div id="invoice" class="invoiceBox">
 
-<div class="invHeader">
-<div>
-<h3>RS Associates</h3>
-<div id="invParty"></div>
-<div id="invGSTIN"></div>
-</div>
+<div class="header">
 
 <div>
-<div class="invNo" id="invNo">RS-000</div>
-<div id="invPeriod"></div>
+<h3>RS Associates</h3>
+<div class="party" id="invParty"></div>
+<div class="gstin" id="invGSTIN"></div>
 </div>
+
+<div class="invMeta">
+<div class="invDate" id="invDate"></div>
+<div class="invNo" id="invNo"></div>
+<div class="period" id="invPeriod"></div>
+</div>
+
 </div>
 
 <table>
+
+<thead>
+<tr>
+<th>Particulars</th>
+<th>Amount (₹)</th>
+</tr>
+</thead>
+
 <tbody id="billBody"></tbody>
+
 <tfoot>
 <tr class="total">
 <td>Total</td>
 <td id="grandTotal"></td>
 </tr>
 </tfoot>
+
 </table>
 
 </div>
@@ -157,6 +203,11 @@ const API="https://backend.rajeevyadav2596.workers.dev";
 
 let customers=[];
 
+function sentenceCase(str){
+return str.replace(/\w\S*/g,
+t=>t.charAt(0).toUpperCase()+t.substr(1).toLowerCase());
+}
+
 /* LOAD CUSTOMERS */
 async function init(){
 
@@ -168,12 +219,13 @@ party.innerHTML='<option>Select Party</option>';
 customers.forEach(c=>{
 party.innerHTML+=
 `<option value="${c.id}">
-${c.firm_name} - ${c.person_name}
+${sentenceCase(c.firm_name)} - ${sentenceCase(c.person_name)}
 </option>`;
 });
 
 }
 
+/* LOAD CUSTOMER */
 function loadCustomer(){
 
 const c=customers.find(x=>x.id==party.value);
@@ -188,7 +240,7 @@ otherAmt.value=c.other_fee_amount;
 
 }
 
-/* MONTH CALC */
+/* MONTH DIFF */
 function monthDiff(a,b){
 
 const d1=new Date(a);
@@ -199,29 +251,61 @@ return (d2.getFullYear()-d1.getFullYear())*12 +
 
 }
 
-/* GENERATE PREVIEW */
+/* FORMAT PERIOD */
+function formatPeriod(f,t){
+
+const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const d1=new Date(f);
+const d2=new Date(t);
+
+return `${m[d1.getMonth()]}-${String(d1.getFullYear()).slice(2)}
+to
+${m[d2.getMonth()]}-${String(d2.getFullYear()).slice(2)}`;
+
+}
+
+/* GENERATE */
 function generateInvoice(){
 
 const months=monthDiff(from.value,to.value);
-
 const gstTotal=months*gstFee.value;
 
-const total=
+let total=
 +gstTotal+
 +auditFee.value+
 +itrFee.value+
-+otherAmt.value;
++otherAmt.value+
++other2Amt.value;
 
-invParty.innerText=party.options[party.selectedIndex].text;
+invParty.innerText=
+sentenceCase(party.options[party.selectedIndex].text);
+
 invGSTIN.innerText="GSTIN: "+gstin.value;
-invPeriod.innerText=from.value+" → "+to.value;
 
-billBody.innerHTML=`
-<tr><td>GST Filing (${months} Months)</td><td>₹${gstTotal}</td></tr>
-<tr><td>Audit</td><td>₹${auditFee.value}</td></tr>
-<tr><td>ITR</td><td>₹${itrFee.value}</td></tr>
-<tr><td>${otherTitle.value}</td><td>₹${otherAmt.value}</td></tr>
+invDate.innerText=
+new Date().toLocaleDateString();
+
+invPeriod.innerText=
+formatPeriod(from.value,to.value);
+
+/* TABLE */
+
+let html=`
+<tr><td>GST Filing (${months} Months)</td><td>${gstTotal}</td></tr>
+<tr><td>Audit</td><td>${auditFee.value}</td></tr>
+<tr><td>ITR</td><td>${itrFee.value}</td></tr>
 `;
+
+if(otherAmt.value>0){
+html+=`<tr><td>${otherTitle.value}</td><td>${otherAmt.value}</td></tr>`;
+}
+
+if(other2Amt.value>0){
+html+=`<tr><td>${other2Title.value}</td><td>${other2Amt.value}</td></tr>`;
+}
+
+billBody.innerHTML=html;
 
 grandTotal.innerText="₹ "+total;
 
@@ -237,7 +321,8 @@ const total=
 +gstTotal+
 +auditFee.value+
 +itrFee.value+
-+otherAmt.value;
++otherAmt.value+
++other2Amt.value;
 
 const res=await fetch(API+"/api/add-invoice",{
 method:"POST",
@@ -253,6 +338,8 @@ audit_total:auditFee.value,
 itr_total:itrFee.value,
 other_name:otherTitle.value,
 other_amount:otherAmt.value,
+other2_name:other2Title.value,
+other2_amount:other2Amt.value,
 final_total:total
 })
 });
@@ -260,17 +347,16 @@ final_total:total
 const data=await res.json();
 invNo.innerText=data.invoice_no;
 
-alert("Invoice Saved");
+alert("Saved");
 
 }
 
 /* JPG */
-function downloadJPG(){
+function openJPG(){
 
-html2canvas(document.getElementById("invoice"))
-.then(canvas=>{
+html2canvas(invoice).then(c=>{
 const link=document.createElement("a");
-link.href=canvas.toDataURL();
+link.href=c.toDataURL();
 link.download="Invoice.jpg";
 link.click();
 window.open(link.href);
