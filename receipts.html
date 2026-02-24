@@ -1,117 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Receipt Entry</title>
-
+<title>Receipt</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body{
-font-family:Segoe UI;
-background:#eef2f7;
-padding:20px;
-}
-
-.card{
-background:white;
-padding:22px;
-border-radius:12px;
-max-width:500px;
-margin:auto;
-box-shadow:0 4px 12px rgba(0,0,0,0.1);
-}
-
-label{
-font-weight:600;
-display:block;
-margin-top:15px;
-}
-
-input,select{
-width:100%;
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
-margin-top:5px;
-}
-
-button{
-margin-top:20px;
-padding:11px;
-background:#1f3c88;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
-width:100%;
-}
-</style>
 </head>
-
 <body>
 
-<div class="card">
-
-<h2>Receipt Entry</h2>
-
-<label>Firm</label>
 <select id="firm"></select>
-
-<label>Amount</label>
-<input id="amount" type="number">
-
-<label>Receipt Nature</label>
+<input id="amt">
 <select id="nature">
 <option>Cash</option>
 <option>Bank</option>
-<option>UPI</option>
-<option>Cheque</option>
 </select>
 
-<button onclick="save()">Save Receipt</button>
-
-</div>
+<button onclick="save()">Save</button>
 
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 
-let customers=[];
-
-/* LOAD FIRMS */
-async function loadFirms(){
-
-const res=await fetch(API+"/api/customers");
-customers=await res.json();
-
-customers.forEach(c=>{
-firm.innerHTML+=
-`<option value="${c.id}">
-${c.firm_name}
-</option>`;
+fetch(API+"/api/customers")
+.then(r=>r.json())
+.then(d=>{
+d.forEach(c=>{
+firm.innerHTML+=`<option value="${c.id}">${c.firm_name}</option>`;
 });
-}
-loadFirms();
+});
 
-/* SAVE RECEIPT */
-async function save(){
-
-await fetch(API+"/api/add-receipt",{
+function save(){
+fetch(API+"/api/add-receipt",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 customer_id:firm.value,
-amount:+amount.value,
+amount:+amt.value,
 nature:nature.value
 })
 });
-
-alert("Receipt Saved ✅");
-
-amount.value="";
 }
 
 </script>
-
 </body>
 </html>
