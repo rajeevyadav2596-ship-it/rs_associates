@@ -1,237 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Create Invoice</title>
-
+<title>Invoice View</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-
 <style>
-
-body{
-font-family:Segoe UI;
-background:#eef2f7;
-padding:20px;
-}
-
-.card{
-background:white;
-padding:20px;
-border-radius:12px;
-max-width:700px;
-margin:auto;
-box-shadow:0 4px 14px rgba(0,0,0,0.1);
-}
-
-h2{color:#1f3c88;}
-
-label{
-font-weight:600;
-margin-top:12px;
-display:block;
-}
-
-input,select{
-width:100%;
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
-margin-top:6px;
-}
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-}
-
-button{
-margin-top:18px;
-padding:12px;
-background:#1f3c88;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
-width:100%;
-}
-
-.invoice{
-margin-top:25px;
-padding:20px;
-border:1px solid #ccc;
-border-radius:10px;
-background:white;
-}
-
+body{font-family:Segoe UI;background:#eef2f7;padding:20px}
+.card{background:white;padding:20px;border-radius:12px;max-width:600px;margin:auto}
+.row{display:flex;justify-content:space-between;margin-top:8px}
 </style>
 </head>
 
 <body>
-
 <div class="card">
-
-<h2>RS Associates — Create Invoice</h2>
-
-<label>Firm Name</label>
-<select id="firmSelect" onchange="fillCustomer()"></select>
-
-<label>Person Name</label>
-<input id="person" readonly>
-
-<div class="grid">
-<div>
-<label>Invoice No</label>
-<input id="invoiceNo" readonly>
-</div>
-
-<div>
-<label>Date</label>
-<input id="date" readonly>
-</div>
-</div>
-
-<label>Time Period</label>
-<div class="grid">
-<input type="month" id="from">
-<input type="month" id="to">
-</div>
-
-<label>GST Fees</label>
-<input id="gst" type="number" oninput="calc()">
-
-<label>Audit</label>
-<input id="audit" readonly>
-
-<label>ITR</label>
-<input id="itr" readonly>
-
-<label>Other Charges</label>
-<input id="other" type="number" oninput="calc()">
-
-<button onclick="generateInvoice()">Generate Invoice</button>
-<button onclick="copyJPG()">Copy Invoice JPG</button>
-
-<div id="invoiceBox" class="invoice" style="display:none"></div>
-
+<h2>Invoice</h2>
+<div id="box">Loading...</div>
 </div>
 
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
+const no=new URLSearchParams(location.search).get("invoice");
 
-let customers=[];
+fetch(API+"/api/invoice/"+no)
+.then(r=>r.json())
+.then(d=>{
 
-/* Load Firms */
-async function loadCustomers(){
-
-const res=await fetch(API+"/api/customers");
-customers=await res.json();
-
-firmSelect.innerHTML="<option>Select</option>";
-
-customers.forEach(c=>{
-firmSelect.innerHTML+=
-`<option value="${c.id}">
-${c.firm_name}
-</option>`;
-});
-}
-loadCustomers();
-
-/* Auto Fill */
-function fillCustomer(){
-
-const c=customers.find(x=>x.id==firmSelect.value);
-
-person.value=c.person_name;
-gst.value=c.gst_charges;
-audit.value=c.audit_fee;
-itr.value=c.itr_fee;
-}
-
-/* Invoice No */
-function getInvoiceNo(){
-
-let n=localStorage.getItem("invNo")||0;
-n++;
-localStorage.setItem("invNo",n);
-return "RS-"+n;
-}
-
-date.value=new Date().toLocaleDateString();
-
-/* Calc */
-function calc(){
-
-audit.value=gst.value;
-itr.value=gst.value;
-}
-
-/* Generate + Save */
-async function generateInvoice(){
-
-const invNo=getInvoiceNo();
-invoiceNo.value=invNo;
-
-const total=
-(+gst.value||0)+
-(+audit.value||0)+
-(+itr.value||0)+
-(+other.value||0);
-
-/* SAVE DB */
-await fetch(API+"/api/add-invoice",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-customer_id:firmSelect.value,
-invoice_no:invNo,
-from:from.value,
-to:to.value,
-gst_total:+gst.value||0,
-audit_total:+audit.value||0,
-itr_total:+itr.value||0,
-other_total:+other.value||0,
-extra1_name:"",
-extra1_amt:0,
-extra2_name:"",
-extra2_amt:0,
-final_total:total
-})
-});
-
-invoiceBox.style.display="block";
-
-invoiceBox.innerHTML=`
-<h3>RS Associates</h3>
-Firm: ${firmSelect.options[firmSelect.selectedIndex].text}<br>
-Person: ${person.value}<br>
-Invoice: ${invNo}<br>
-Date: ${date.value}<hr>
-
-GST: ₹${gst.value}<br>
-Audit: ₹${audit.value}<br>
-ITR: ₹${itr.value}<br>
-Other: ₹${other.value}<hr>
-
-<b>Total: ₹${total}</b>
+box.innerHTML=`
+<div class="row"><b>${d.firm_name}</b><b>${d.invoice_no}</b></div>
+<div class="row"><span>GST</span><span>₹${d.gst_total}</span></div>
+<div class="row"><span>Audit</span><span>₹${d.audit_total}</span></div>
+<div class="row"><span>ITR</span><span>₹${d.itr_total}</span></div>
+<div class="row"><b>Total</b><b>₹${d.final_total}</b></div>
 `;
-}
 
-/* Copy JPG */
-function copyJPG(){
-
-html2canvas(invoiceBox).then(canvas=>{
-navigator.clipboard.write([
-new ClipboardItem({"image/png":canvas.toBlob(()=>{})})
-]);
-alert("Copied");
 });
-}
-
 </script>
-
 </body>
 </html>
