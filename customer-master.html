@@ -1,308 +1,126 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Customer Master</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-
-body{
-font-family:Segoe UI;
-background:#eef2f7;
-margin:0;
-padding:20px;
-}
-
-/* Card */
-.card{
-background:white;
-padding:22px;
-border-radius:12px;
-max-width:520px;
-margin:auto;
-box-shadow:0 4px 14px rgba(0,0,0,0.1);
-}
-
-h2{
-margin-top:0;
-}
-
-/* Inputs */
-label{
-font-weight:600;
-display:block;
-margin-top:14px;
-}
-
-input{
-width:100%;
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
-font-size:14px;
-}
-
-/* Buttons */
-.btn{
-margin-top:20px;
-padding:11px;
-width:100%;
-background:#1f3c88;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
-font-weight:600;
-}
-
-.btn:hover{
-background:#162c66;
-}
-
-/* Dropdown */
-.dropdown{
-margin-top:6px;
-max-height:150px;
-overflow:auto;
-border:1px solid #ccc;
-border-radius:6px;
-display:none;
-background:white;
-}
-
-.dropdown div{
-padding:8px;
-border-bottom:1px solid #eee;
-cursor:pointer;
-font-size:14px;
-}
-
-.dropdown div:hover{
-background:#f1f5ff;
-}
-
-/* Professional Last Entry */
-.latest{
-margin-top:22px;
-background:#f7f9ff;
-border:1px solid #dbe3ff;
-padding:12px;
-border-radius:10px;
-font-size:14px;
-line-height:1.6;
-}
-
-.latest b{
-color:#1f3c88;
-}
-
-</style>
+  <title>Customer Master</title>
+  <style>
+    body{
+      font-family: Arial;
+      background:#eef2f7;
+      display:flex;
+      justify-content:center;
+      padding:40px;
+    }
+    .box{
+      background:#fff;
+      padding:25px;
+      width:420px;
+      border-radius:12px;
+      box-shadow:0 5px 15px rgba(0,0,0,0.1);
+    }
+    input{
+      width:100%;
+      padding:10px;
+      margin-top:8px;
+      margin-bottom:15px;
+      border:1px solid #ccc;
+      border-radius:6px;
+    }
+    button{
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:6px;
+      background:#2d4a8a;
+      color:#fff;
+      font-weight:bold;
+      cursor:pointer;
+      margin-top:5px;
+    }
+    .delete{
+      background:#c0392b;
+    }
+    .list{
+      background:#f7f7f7;
+      padding:10px;
+      border-radius:6px;
+      max-height:120px;
+      overflow:auto;
+      margin-bottom:15px;
+    }
+    .list div{
+      padding:5px;
+      cursor:pointer;
+    }
+    .list div:hover{
+      background:#ddd;
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="card">
-
+<div class="box">
 <h2>Customer Master</h2>
 
-<!-- Search -->
-<label>Search Record</label>
-<input id="searchFirm" placeholder="Type Firm Name..." onkeyup="filterFirm()" onfocus="openDropdown()">
-<div id="dropdown" class="dropdown"></div>
+<div class="list" id="list"></div>
 
-<!-- Firm -->
-<label>Firm Name *</label>
-<input id="firm">
+<input id="firm" placeholder="Firm Name">
+<input id="person" placeholder="Person Name">
+<input id="gst" placeholder="GST Charges / Month">
+<input id="audit" placeholder="Audit Fee">
+<input id="itr" placeholder="ITR Fee">
 
-<!-- Person -->
-<label>Person Name *</label>
-<input id="person">
-
-<!-- Charges -->
-<label>GST Charges (Per Month)</label>
-<input id="gst" type="number">
-
-<label>Audit Fee</label>
-<input id="audit" type="number">
-
-<label>ITR Fee</label>
-<input id="itr" type="number">
-
-<button class="btn" onclick="save()">Save</button>
-
-<!-- Last Entry -->
-<div id="latest" class="latest"></div>
-
+<button onclick="saveCustomer()">Save</button>
+<button class="delete" onclick="deleteCustomer()">Delete</button>
 </div>
 
 <script>
+let customers = JSON.parse(localStorage.getItem("customers")||"[]");
+let selectedIndex = null;
 
-const API="https://backend.rajeevyadav2596.workers.dev";
+function renderList(){
+  let list=document.getElementById("list");
+  list.innerHTML="";
+  customers.forEach((c,i)=>{
+    let d=document.createElement("div");
+    d.innerText=`${c.firm} - ${c.person}`;
+    d.onclick=()=>{
+      selectedIndex=i;
+      firm.value=c.firm;
+      person.value=c.person;
+      gst.value=c.gst;
+      audit.value=c.audit;
+      itr.value=c.itr;
+    };
+    list.appendChild(d);
+  });
+}
+renderList();
 
-let customers=[];
-let selectedId=null;
+function saveCustomer(){
+  let data={
+    firm:firm.value,
+    person:person.value,
+    gst:+gst.value||0,
+    audit:+audit.value||0,
+    itr:+itr.value||0
+  };
 
-/* Sentence Case */
-function sentenceCase(str){
-return str
-.toLowerCase()
-.replace(/\b\w/g, l=>l.toUpperCase());
+  if(selectedIndex!=null){
+    customers[selectedIndex]=data;
+  }else{
+    customers.push(data);
+  }
+
+  localStorage.setItem("customers",JSON.stringify(customers));
+  location.reload();
 }
 
-/* Load Customers */
-async function loadCustomers(){
-
-const res=await fetch(API+"/api/customers");
-customers=await res.json();
+function deleteCustomer(){
+  if(selectedIndex==null) return alert("Select record");
+  customers.splice(selectedIndex,1);
+  localStorage.setItem("customers",JSON.stringify(customers));
+  location.reload();
 }
-
-loadCustomers();
-
-/* Open Dropdown Only On Focus */
-function openDropdown(){
-renderList(customers);
-dropdown.style.display="block";
-}
-
-/* Render List */
-function renderList(list){
-
-dropdown.innerHTML="";
-
-list.forEach(c=>{
-
-const row=document.createElement("div");
-row.innerText=`${c.firm_name} - ${c.person_name}`;
-
-row.onclick=()=>selectCustomer(c);
-
-dropdown.appendChild(row);
-});
-}
-
-/* Filter */
-function filterFirm(){
-
-const text=searchFirm.value.toLowerCase();
-
-const filtered=customers.filter(c=>
-c.firm_name.toLowerCase().includes(text)
-);
-
-renderList(filtered);
-}
-
-/* Select */
-function selectCustomer(c){
-
-selectedId=c.id;
-
-firm.value=c.firm_name;
-person.value=c.person_name;
-gst.value=c.gst_charges;
-audit.value=c.audit_fee;
-itr.value=c.itr_fee;
-
-dropdown.style.display="none";
-}
-
-/* Save (Add + Update) */
-async function save(){
-
-if(!firm.value || !person.value){
-alert("Firm & Person Mandatory");
-return;
-}
-
-/* Sentence Case */
-const firmName=sentenceCase(firm.value);
-const personName=sentenceCase(person.value);
-
-/* Duplicate Check */
-const duplicate=customers.find(c=>
-c.firm_name.toLowerCase()===firmName.toLowerCase()
-&& c.id!==selectedId
-);
-
-if(duplicate){
-alert("Duplicate Firm Already Exists");
-return;
-}
-
-/* Data */
-const data={
-firm:firmName,
-person:personName,
-gst:+gst.value||0,
-audit:+audit.value||0,
-itr:+itr.value||0
-};
-
-/* ADD */
-if(!selectedId){
-
-await fetch(API+"/api/add-customer",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify(data)
-});
-
-showLatest(data);
-alert("Customer Added");
-
-}
-
-/* UPDATE */
-else{
-
-await fetch(API+"/api/update-customer",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-id:selectedId,
-person:personName,
-gst:data.gst,
-audit:data.audit,
-itr:data.itr
-})
-});
-
-showLatest(data);
-alert("Customer Updated");
-}
-
-/* Reset */
-resetForm();
-await loadCustomers();
-}
-
-/* Reset */
-function resetForm(){
-
-selectedId=null;
-
-firm.value="";
-person.value="";
-gst.value="";
-audit.value="";
-itr.value="";
-searchFirm.value="";
-}
-
-/* Professional Last Entry */
-function showLatest(d){
-
-latest.innerHTML=`
-<b>Last Saved Record</b><br>
-${d.firm} - ${d.person}<br>
-GST Charges: ₹${d.gst} &nbsp; | &nbsp;
-Audit Fee: ₹${d.audit} &nbsp; | &nbsp;
-ITR Fee: ₹${d.itr}
-`;
-}
-
 </script>
-
 </body>
 </html>
