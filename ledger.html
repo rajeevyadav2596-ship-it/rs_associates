@@ -43,6 +43,7 @@ color:white;
 border:none;
 border-radius:8px;
 cursor:pointer;
+margin-right:8px;
 }
 
 table{
@@ -74,8 +75,10 @@ color:white;
 <label>Select Firm</label>
 <select id="firmSelect"></select>
 
+<br>
 <button onclick="loadLedger()">Search Ledger</button>
-<button onclick="downloadPDF()">Copy / Download PDF</button>
+<button onclick="copyJPG()">Copy JPG</button>
+<button onclick="downloadPDF()">Download PDF</button>
 
 <div id="ledgerBox">
 
@@ -121,7 +124,7 @@ ${c.firm_name}
 }
 loadCustomers();
 
-/* Load Ledger */
+/* Ledger Load */
 async function loadLedger(){
 
 const id=firmSelect.value;
@@ -169,6 +172,7 @@ tbody.innerHTML+=`
 
 }
 
+/* Format */
 function monthText(m){
 if(!m) return "";
 return new Date(m).toLocaleString("en-GB",{month:"short",year:"2-digit"});
@@ -176,6 +180,22 @@ return new Date(m).toLocaleString("en-GB",{month:"short",year:"2-digit"});
 
 function formatDate(d){
 return new Date(d).toLocaleDateString("en-GB");
+}
+
+/* JPG COPY */
+async function copyJPG(){
+
+const canvas=await html2canvas(ledgerBox);
+
+canvas.toBlob(async blob=>{
+
+await navigator.clipboard.write([
+new ClipboardItem({"image/png":blob})
+]);
+
+alert("Ledger Copied as JPG ✅");
+
+});
 }
 
 /* PDF */
