@@ -1,53 +1,101 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Create Invoice</title>
+<title>RS Associates – Invoice</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
+
 body{
-font-family:Calibri;
+font-family:Segoe UI;
 background:#eef2f7;
-padding:40px;
+margin:0;
+padding:20px;
 }
 
+/* Card */
 .card{
 background:white;
-padding:30px;
-border-radius:10px;
-width:900px;
+padding:20px;
+border-radius:12px;
+max-width:700px;
 margin:auto;
-box-shadow:0 4px 12px rgba(0,0,0,0.1);
+box-shadow:0 4px 14px rgba(0,0,0,0.1);
 }
 
-table{
-width:100%;
-border-collapse:collapse;
-}
+h2{margin-top:0;color:#1f3c88;}
 
-td{
-padding:10px;
-border-bottom:1px solid #eee;
+label{
+font-weight:600;
+display:block;
+margin-top:12px;
 }
 
 input,select{
 width:100%;
-padding:8px;
+padding:10px;
 border:1px solid #ccc;
-border-radius:4px;
+border-radius:6px;
+font-size:14px;
 }
 
-.heading{
-font-size:22px;
-font-weight:bold;
-margin-bottom:20px;
+/* Grid mobile */
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+@media(max-width:600px){
+.grid{grid-template-columns:1fr;}
+}
+
+/* Button */
+.btn{
+margin-top:20px;
+padding:12px;
+background:#1f3c88;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+width:100%;
+font-weight:600;
+}
+
+.btn:hover{background:#162c66;}
+
+/* Invoice Print Layout */
+.invoice{
+margin-top:30px;
+background:white;
+padding:20px;
+border:1px solid #ccc;
+border-radius:10px;
+}
+
+.invoice h3{
+margin:0;
 color:#1f3c88;
 }
 
-.total{
-font-size:18px;
-font-weight:bold;
-color:#000;
+.row{
+display:flex;
+justify-content:space-between;
+margin-top:8px;
+border-bottom:1px dashed #ddd;
+padding-bottom:4px;
 }
+
+.total{
+font-weight:700;
+font-size:18px;
+margin-top:12px;
+}
+
 </style>
 </head>
 
@@ -55,71 +103,67 @@ color:#000;
 
 <div class="card">
 
-<div class="heading">
-RS Associates – Invoice
+<h2>RS Associates – Invoice</h2>
+
+<label>Firm Name</label>
+<select id="firmSelect" onchange="fillCustomer()"></select>
+
+<label>Person Name</label>
+<input id="person" readonly>
+
+<div class="grid">
+<div>
+<label>Invoice No.</label>
+<input id="invoiceNo" readonly>
 </div>
 
-<table>
+<div>
+<label>Date</label>
+<input id="date" readonly>
+</div>
+</div>
 
-<tr>
-<td>Customer Name</td>
-<td>
-<select id="firm"></select>
-</td>
-</tr>
-
-<tr>
-<td>Person Name</td>
-<td><input id="person" readonly></td>
-</tr>
-
-<tr>
-<td><b>Invoice No.</b></td>
-<td><input id="invoiceNo" readonly></td>
-</tr>
-
-<tr>
-<td><b>Time Period</b></td>
-<td>
+<label>Time Period</label>
+<div class="grid">
 <input type="month" id="from">
-to
 <input type="month" id="to">
-</td>
-</tr>
+</div>
 
-<tr>
-<td>GST Fees (Per Month)</td>
-<td><input id="gst" readonly></td>
-</tr>
+<label>GST Fees (Per Month)</label>
+<input id="gst" type="number" oninput="calc()">
 
-<tr>
-<td>GST Charges</td>
-<td id="gstTotal">Auto Calculated</td>
-</tr>
+<label>Audit Charges</label>
+<input id="audit" type="number" readonly>
 
-<tr>
-<td>Audit Charges</td>
-<td id="auditTotal">Auto Calculated</td>
-</tr>
+<label>ITR Charges</label>
+<input id="itr" type="number" readonly>
 
-<tr>
-<td>Other Charges / TDS</td>
-<td><input id="other"></td>
-</tr>
+<label>Other Charges / TDS</label>
+<input id="other" type="number" oninput="calc()">
 
-<tr>
-<td>ITR</td>
-<td><input id="itr"></td>
-</tr>
+<!-- Extra Charges -->
+<label>Extra Charge 1</label>
+<div class="grid">
+<input id="extra1name" placeholder="Charge Name">
+<input id="extra1amt" type="number" oninput="calc()">
+</div>
 
-<tr>
-<td class="total">Final Bill</td>
-<td class="total" id="finalBill"></td>
-</tr>
+<label>Extra Charge 2</label>
+<div class="grid">
+<input id="extra2name" placeholder="Charge Name">
+<input id="extra2amt" type="number" oninput="calc()">
+</div>
 
-</table>
+<button class="btn" onclick="generateInvoice()">
+Generate Invoice
+</button>
 
-<button onclick="generate()">Generate Invoice</button>
+<button class="btn" onclick="copyJPG()">
+Copy Invoice JPG
+</button>
+
+<!-- Invoice Output -->
+<div id="invoiceBox" class="invoice" style="display:none"></div>
 
 </div>
 
@@ -129,71 +173,127 @@ const API="https://backend.rajeevyadav2596.workers.dev";
 
 let customers=[];
 
+/* Load Customers */
+async function loadCustomers(){
 
-/* AUTO INVOICE NUMBER */
-fetch(API+"/api/next-invoice")
-.then(r=>r.json())
-.then(d=>{
-invoiceNo.value=d.invoice_no;
-});
+const res=await fetch(API+"/api/customers");
+customers=await res.json();
 
+firmSelect.innerHTML="<option>Select Firm</option>";
 
-/* LOAD CUSTOMERS */
-fetch(API+"/api/customers")
-.then(r=>r.json())
-.then(d=>{
-customers=d;
-
-d.forEach(c=>{
-firm.innerHTML+=
-`<option value="${c.firm_name}">
+customers.forEach(c=>{
+firmSelect.innerHTML+=
+`<option value="${c.id}">
 ${c.firm_name}
 </option>`;
 });
-});
+}
 
+loadCustomers();
 
-/* AUTO FETCH PERSON + GST */
-firm.onchange=function(){
+/* Fill Person + Fees */
+function fillCustomer(){
 
-let c=
-customers.find(x=>x.firm_name===firm.value);
+const c=customers.find(x=>x.id==firmSelect.value);
 
 person.value=c.person_name;
-gst.value=c.gst_rate;
+gst.value=c.gst_charges;
+audit.value=c.audit_fee;
+itr.value=c.itr_fee;
 
-};
+calc();
+}
 
+/* Invoice No Series */
+function generateInvoiceNo(){
 
-/* CALCULATE */
-function generate(){
+let last=localStorage.getItem("invoiceNo")||0;
+last++;
+localStorage.setItem("invoiceNo",last);
 
-let f=new Date(from.value);
-let t=new Date(to.value);
+return "RS-"+last;
+}
 
-let months=
-(t.getFullYear()-f.getFullYear())*12+
-(t.getMonth()-f.getMonth())+1;
+/* Date */
+date.value=new Date().toLocaleDateString();
 
-let gstT=
-months*(+gst.value||0);
+/* Calc */
+function calc(){
 
-let auditT=
-months*(+customers
-.find(x=>x.firm_name===firm.value)
-.audit_rate||0);
-
-gstTotal.innerHTML=gstT;
-auditTotal.innerHTML=auditT;
-
-let final=
-gstT+auditT+
-(+other.value||0)+
-(+itr.value||0);
-
-finalBill.innerHTML=final;
+audit.value = (+gst.value||0);
+itr.value = (+gst.value||0);
 
 }
+
+/* Generate Invoice */
+function generateInvoice(){
+
+const invNo=generateInvoiceNo();
+invoiceNo.value=invNo;
+
+const total =
+(+gst.value||0) +
+(+audit.value||0) +
+(+itr.value||0) +
+(+other.value||0) +
+(+extra1amt.value||0) +
+(+extra2amt.value||0);
+
+invoiceBox.style.display="block";
+
+invoiceBox.innerHTML=`
+
+<h3>RS Associates</h3>
+<hr>
+
+<div class="row">
+<span><b>Firm:</b> ${firmSelect.options[firmSelect.selectedIndex].text}</span>
+<span><b>Invoice No:</b> ${invNo}</span>
+</div>
+
+<div class="row">
+<span><b>Person:</b> ${person.value}</span>
+<span><b>Date:</b> ${date.value}</span>
+</div>
+
+<div class="row"><span>GST Fees</span><span>₹${gst.value}</span></div>
+<div class="row"><span>Audit</span><span>₹${audit.value}</span></div>
+<div class="row"><span>ITR</span><span>₹${itr.value}</span></div>
+<div class="row"><span>Other</span><span>₹${other.value}</span></div>
+
+${extra1name.value ?
+`<div class="row"><span>${extra1name.value}</span><span>₹${extra1amt.value}</span></div>`:""}
+
+${extra2name.value ?
+`<div class="row"><span>${extra2name.value}</span><span>₹${extra2amt.value}</span></div>`:""}
+
+<div class="row total">
+<span>Final Total</span>
+<span>₹${total}</span>
+</div>
+
+`;
+}
+
+/* Copy JPG */
+function copyJPG(){
+
+html2canvas(invoiceBox).then(canvas=>{
+
+canvas.toBlob(async blob=>{
+
+await navigator.clipboard.write([
+new ClipboardItem({"image/png":blob})
+]);
+
+alert("Invoice Copied as JPG ✅");
+
+});
+
+});
+
+}
+
 </script>
 
 </body>
