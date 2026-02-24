@@ -3,44 +3,92 @@
 <head>
 <title>Customer Master</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
+
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-padding:40px;
+margin:0;
+padding:20px;
 }
 
+/* Card */
 .card{
 background:white;
-padding:30px;
+padding:20px;
 border-radius:12px;
-width:500px;
+max-width:500px;
 margin:auto;
 box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 
+/* Mobile */
+@media(max-width:600px){
+.card{
+padding:15px;
+}
+}
+
+/* Inputs */
 label{
 font-weight:600;
 display:block;
-margin-top:15px;
+margin-top:14px;
 }
 
-input{
+input,select{
 width:100%;
 padding:10px;
 border:1px solid #ccc;
 border-radius:6px;
+font-size:14px;
+}
+
+/* Buttons */
+.btn-group{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
 }
 
 button{
-margin-top:20px;
-padding:10px 18px;
+margin-top:18px;
+padding:10px 16px;
 background:#1f3c88;
 color:white;
 border:none;
 border-radius:8px;
 cursor:pointer;
+flex:1;
 }
+
+button:hover{
+background:#162c66;
+}
+
+/* Dropdown table style */
+.dropdown{
+margin-top:8px;
+max-height:150px;
+overflow:auto;
+border:1px solid #ccc;
+border-radius:6px;
+display:none;
+background:white;
+}
+
+.dropdown div{
+padding:8px;
+border-bottom:1px solid #eee;
+cursor:pointer;
+}
+
+.dropdown div:hover{
+background:#f1f5ff;
+}
+
 </style>
 </head>
 
@@ -48,28 +96,119 @@ cursor:pointer;
 
 <div class="card">
 
-<h2>Create Customer</h2>
+<h2>Customer Master</h2>
 
-<label>Firm Name</label>
-<input id="firm">
+<!-- Select Existing -->
+<label>Select Customer</label>
+<input id="searchFirm" placeholder="Search Firm..." onkeyup="filterFirm()">
+<div id="dropdown" class="dropdown"></div>
 
-<label>Person Name</label>
-<input id="person">
+<!-- Firm -->
+<label>Firm Name *</label>
+<input id="firm" required>
 
-<label>GST Rate (Per Month)</label>
-<input id="gst">
+<!-- Person -->
+<label>Person Name *</label>
+<input id="person" required>
 
-<label>Audit Fee (Per Month)</label>
-<input id="audit">
+<!-- Charges -->
+<label>GST Charges (Per Month)</label>
+<input id="gst" type="number">
 
-<button onclick="save()">Save Customer</button>
+<label>Audit Fee</label>
+<input id="audit" type="number">
+
+<label>ITR Fee</label>
+<input id="itr" type="number">
+
+<!-- Buttons -->
+<div class="btn-group">
+<button onclick="addNew()">Add New</button>
+<button onclick="save()">Save</button>
+<button onclick="update()">Modify</button>
+</div>
 
 </div>
 
 <script>
+
 const API="https://backend.rajeevyadav2596.workers.dev";
 
+let customers=[];
+
+/* Load Customers */
+async function loadCustomers(){
+
+const res=await fetch(API+"/api/customers");
+customers=await res.json();
+
+showDropdown(customers);
+}
+
+loadCustomers();
+
+/* Show Dropdown */
+function showDropdown(list){
+
+dropdown.innerHTML="";
+dropdown.style.display="block";
+
+list.forEach(c=>{
+
+const row=document.createElement("div");
+
+row.innerText=`${c.firm} - ${c.person}`;
+
+row.onclick=()=>{
+selectCustomer(c);
+};
+
+dropdown.appendChild(row);
+
+});
+}
+
+/* Filter */
+function filterFirm(){
+
+const text=searchFirm.value.toLowerCase();
+
+const filtered=customers.filter(c=>
+c.firm.toLowerCase().includes(text)
+);
+
+showDropdown(filtered);
+}
+
+/* Select Existing */
+function selectCustomer(c){
+
+firm.value=c.firm;
+person.value=c.person;
+gst.value=c.gst;
+audit.value=c.audit;
+itr.value=c.itr;
+
+dropdown.style.display="none";
+}
+
+/* Add New */
+function addNew(){
+
+firm.value="";
+person.value="";
+gst.value="";
+audit.value="";
+itr.value="";
+}
+
+/* Save */
 function save(){
+
+if(!firm.value || !person.value){
+alert("Firm & Person Name Mandatory");
+return;
+}
 
 fetch(API+"/api/add-customer",{
 method:"POST",
@@ -78,12 +217,32 @@ body:JSON.stringify({
 firm:firm.value,
 person:person.value,
 gst:+gst.value,
-audit:+audit.value
+audit:+audit.value,
+itr:+itr.value
 })
 });
 
-alert("Customer Saved");
+alert("Customer Added");
 }
+
+/* Modify */
+function update(){
+
+fetch(API+"/api/update-customer",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+firm:firm.value,
+person:person.value,
+gst:+gst.value,
+audit:+audit.value,
+itr:+itr.value
+})
+});
+
+alert("Customer Updated");
+}
+
 </script>
 
 </body>
