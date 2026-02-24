@@ -27,17 +27,17 @@ box-shadow:0 4px 14px rgba(0,0,0,0.1);
 
 h2{margin-top:0;color:#1f3c88;}
 
-select,input{
+select{
 padding:10px;
 border:1px solid #ccc;
 border-radius:6px;
-margin-top:10px;
 width:100%;
+margin-top:10px;
 }
 
 button{
 margin-top:12px;
-padding:10px;
+padding:10px 16px;
 background:#1f3c88;
 color:white;
 border:none;
@@ -63,6 +63,10 @@ background:#1f3c88;
 color:white;
 }
 
+tr:nth-child(even){
+background:#f7f9ff;
+}
+
 </style>
 </head>
 
@@ -75,14 +79,8 @@ color:white;
 <label>Select Firm</label>
 <select id="firmSelect"></select>
 
-<label>Date Period</label>
-<div style="display:flex;gap:10px;">
-<input type="month" id="from">
-<input type="month" id="to">
-</div>
-
-<button onclick="loadLedger()">Search</button>
-<button onclick="pdf()">Copy / Download PDF</button>
+<button onclick="loadLedger()">Search Ledger</button>
+<button onclick="downloadPDF()">Copy / Download PDF</button>
 
 <div id="ledgerBox">
 
@@ -117,7 +115,7 @@ async function loadCustomers(){
 const res=await fetch(API+"/api/customers");
 customers=await res.json();
 
-firmSelect.innerHTML="<option>Select</option>";
+firmSelect.innerHTML="<option value=''>Select Firm</option>";
 
 customers.forEach(c=>{
 firmSelect.innerHTML+=
@@ -129,66 +127,63 @@ ${c.firm_name}
 
 loadCustomers();
 
-/* Ledger Load */
+/* Load Ledger */
 async function loadLedger(){
 
 const id=firmSelect.value;
 
-const inv=await fetch(API+"/api/invoices");
-const invoices=await inv.json();
+if(!id){
+alert("Select Firm");
+return;
+}
 
-const rec=await fetch(API+"/api/receipts");
-const receipts=await rec.json();
+/* Combined API */
+const res=await fetch(API+"/api/ledger-dashboard");
+const data=await res.json();
 
 /* Filter Firm */
-const i=invoices.filter(x=>x.customer_id==id);
-const r=receipts.filter(x=>x.customer_id==id);
-
-/* Combine */
-let data=[];
-
-/* Invoice Entries */
-i.forEach(x=>{
-
-data.push({
-date:x.created_at,
-particular:`${monthText(x.period_from)} to ${monthText(x.period_to)}`,
-invoice:x.final_total,
-receipt:0
-});
-
-});
-
-/* Receipt Entries */
-r.forEach(x=>{
-
-data.push({
-date:x.created_at,
-particular:x.nature,
-invoice:0,
-receipt:x.amount
-});
-
-});
+const firmData=data.filter(x=>x.customer_id==id);
 
 /* Sort Date */
-data.sort((a,b)=>new Date(a.date)-new Date(b.date));
+firmData.sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-/* Running Balance */
 let balance=0;
 tbody.innerHTML="";
 
-data.forEach(d=>{
+firmData.forEach(d=>{
 
-balance += d.invoice;
-balance -= d.receipt;
+let particular="";
+let invoice="";
+let receipt="";
+
+/* Invoice Row */
+if(d.invoice_amount>0){
+
+particular=
+monthText(d.period_from) +
+" to " +
+monthText(d.period_to);
+
+invoice="₹"+d.invoice_amount;
+balance+=d.invoice_amount;
+
+}
+
+/* Receipt Row */
+if(d.receipt_amount>0){
+
+particular=d.type;
+receipt="₹"+d.receipt_amount;
+balance-=d.receipt_amount;
+
+}
 
 tbody.innerHTML+=`
 <tr>
 <td>${formatDate(d.date)}</td>
-<td>${d.particular}</td>
-<td>${d.invoice? "₹"+d.invoice:""}</td>
-<td>${d.receipt? "₹"+d.receipt:""}</td>
+<td>${particular}</td>
+<td>${invoice}</td>
+<td>${receipt}</td>
 <td>₹${balance}</td>
 </tr>
 `;
@@ -217,7 +212,7 @@ return new Date(dt).toLocaleDateString("en-GB");
 }
 
 /* PDF */
-async function pdf(){
+async function downloadPDF(){
 
 const canvas=await html2canvas(ledgerBox);
 const img=canvas.toDataURL("image/png");
