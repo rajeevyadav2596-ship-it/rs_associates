@@ -6,26 +6,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-padding:20px;
+padding:15px;
+margin:0;
 }
 
 .card{
 background:white;
-padding:20px;
+padding:15px;
 border-radius:12px;
-max-width:1000px;
+max-width:1100px;
 margin:auto;
 box-shadow:0 4px 14px rgba(0,0,0,0.1);
 }
 
-h2{color:#1f3c88;}
+h2{color:#1f3c88;margin-top:0;}
 
 select{
 padding:10px;
@@ -37,30 +37,60 @@ margin-top:10px;
 
 button{
 margin-top:12px;
-padding:10px 16px;
+padding:10px 14px;
 background:#1f3c88;
 color:white;
 border:none;
 border-radius:8px;
 cursor:pointer;
-margin-right:8px;
+margin-right:6px;
+font-size:14px;
+}
+
+/* Responsive Table */
+.table-wrapper{
+overflow-x:auto;
+margin-top:15px;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:20px;
+min-width:700px;
 }
 
 th,td{
 border:1px solid #ddd;
 padding:8px;
 text-align:center;
+font-size:14px;
+white-space:nowrap;
 }
 
 th{
 background:#1f3c88;
 color:white;
+}
+
+.invoice-link{
+color:#1f3c88;
+font-weight:600;
+cursor:pointer;
+text-decoration:underline;
+}
+
+@media(max-width:600px){
+
+th,td{
+font-size:12px;
+padding:6px;
+}
+
+button{
+width:100%;
+margin-bottom:8px;
+}
+
 }
 
 </style>
@@ -75,21 +105,20 @@ color:white;
 <label>Select Firm</label>
 <select id="firmSelect"></select>
 
-<br>
 <button onclick="loadLedger()">Search Ledger</button>
 <button onclick="copyJPG()">Copy JPG</button>
-<button onclick="downloadPDF()">Download PDF</button>
 
-<div id="ledgerBox">
+<div id="ledgerBox" class="table-wrapper">
 
 <table>
 <thead>
 <tr>
 <th>Date</th>
+<th>Invoice No</th>
 <th>Particulars</th>
 <th>Invoice</th>
 <th>Receipt</th>
-<th>Closing Balance</th>
+<th>Closing</th>
 </tr>
 </thead>
 
@@ -124,7 +153,7 @@ ${c.firm_name}
 }
 loadCustomers();
 
-/* Ledger Load */
+/* Load Ledger */
 async function loadLedger(){
 
 const id=firmSelect.value;
@@ -134,6 +163,8 @@ const data=await res.json();
 
 const firmData=data.filter(x=>x.customer_id==id);
 
+firmData.sort((a,b)=>new Date(a.date)-new Date(b.date));
+
 let balance=0;
 tbody.innerHTML="";
 
@@ -142,6 +173,7 @@ firmData.forEach(d=>{
 let particular="";
 let invoice="";
 let receipt="";
+let invNo="";
 
 if(d.invoice_amount>0){
 
@@ -149,27 +181,39 @@ particular=
 monthText(d.period_from)+" to "+
 monthText(d.period_to);
 
-invoice="₹"+d.invoice_amount;
+invoice="₹"+formatMoney(d.invoice_amount);
 balance+=d.invoice_amount;
+
+invNo=`<span class="invoice-link"
+onclick="openInvoice('${d.invoice_no}')">
+${d.invoice_no}
+</span>`;
 }
 
 if(d.receipt_amount>0){
 
 particular=d.type;
-receipt="₹"+d.receipt_amount;
+receipt="₹"+formatMoney(d.receipt_amount);
 balance-=d.receipt_amount;
 }
 
 tbody.innerHTML+=`
 <tr>
 <td>${formatDate(d.date)}</td>
+<td>${invNo}</td>
 <td>${particular}</td>
 <td>${invoice}</td>
 <td>${receipt}</td>
-<td>₹${balance}</td>
+<td>₹${formatMoney(balance)}</td>
 </tr>`;
 });
 
+}
+
+/* Open Invoice */
+function openInvoice(invNo){
+
+window.open("invoice.html?invoice="+invNo,"_blank");
 }
 
 /* Format */
@@ -182,33 +226,21 @@ function formatDate(d){
 return new Date(d).toLocaleDateString("en-GB");
 }
 
-/* JPG COPY */
+function formatMoney(x){
+return Number(x).toLocaleString("en-IN");
+}
+
+/* Copy JPG */
 async function copyJPG(){
 
 const canvas=await html2canvas(ledgerBox);
 
 canvas.toBlob(async blob=>{
-
 await navigator.clipboard.write([
 new ClipboardItem({"image/png":blob})
 ]);
-
 alert("Ledger Copied as JPG ✅");
-
 });
-}
-
-/* PDF */
-async function downloadPDF(){
-
-const canvas=await html2canvas(ledgerBox);
-const img=canvas.toDataURL("image/png");
-
-const { jsPDF }=window.jspdf;
-const pdf=new jsPDF();
-
-pdf.addImage(img,"PNG",10,10,190,0);
-pdf.save("Ledger.pdf");
 }
 
 </script>
