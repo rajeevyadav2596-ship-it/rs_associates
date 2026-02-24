@@ -13,7 +13,6 @@
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-margin:0;
 padding:20px;
 }
 
@@ -36,19 +35,9 @@ margin-top:10px;
 width:100%;
 }
 
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr 1fr;
-gap:10px;
-}
-
-@media(max-width:700px){
-.grid{grid-template-columns:1fr;}
-}
-
 button{
-margin-top:15px;
-padding:11px;
+margin-top:12px;
+padding:10px;
 background:#1f3c88;
 color:white;
 border:none;
@@ -74,10 +63,6 @@ background:#1f3c88;
 color:white;
 }
 
-tr:nth-child(even){
-background:#f7f9ff;
-}
-
 </style>
 </head>
 
@@ -87,44 +72,33 @@ background:#f7f9ff;
 
 <h2>Ledger Dashboard</h2>
 
-<!-- Search -->
-<label>Search Firm</label>
+<label>Select Firm</label>
 <select id="firmSelect"></select>
 
-<!-- Period -->
-<div class="grid">
-<div>
-<label>From</label>
+<label>Date Period</label>
+<div style="display:flex;gap:10px;">
 <input type="month" id="from">
-</div>
-
-<div>
-<label>To</label>
 <input type="month" id="to">
 </div>
 
-<div>
-<button onclick="loadLedger()">Search Ledger</button>
-</div>
-</div>
+<button onclick="loadLedger()">Search</button>
+<button onclick="pdf()">Copy / Download PDF</button>
 
-<button onclick="downloadPDF()">Copy / Download PDF</button>
-
-<!-- Ledger Table -->
 <div id="ledgerBox">
 
-<table id="ledgerTable">
+<table>
 <thead>
 <tr>
 <th>Date</th>
 <th>Particulars</th>
 <th>Invoice</th>
 <th>Receipt</th>
-<th>Nature</th>
 <th>Closing Balance</th>
 </tr>
 </thead>
-<tbody></tbody>
+
+<tbody id="tbody"></tbody>
+
 </table>
 
 </div>
@@ -136,8 +110,6 @@ background:#f7f9ff;
 const API="https://backend.rajeevyadav2596.workers.dev";
 
 let customers=[];
-let ledger=[];
-let receipts=[];
 
 /* Load Firms */
 async function loadCustomers(){
@@ -145,7 +117,7 @@ async function loadCustomers(){
 const res=await fetch(API+"/api/customers");
 customers=await res.json();
 
-firmSelect.innerHTML="<option>Select Firm</option>";
+firmSelect.innerHTML="<option>Select</option>";
 
 customers.forEach(c=>{
 firmSelect.innerHTML+=
@@ -157,96 +129,103 @@ ${c.firm_name}
 
 loadCustomers();
 
-/* Load Ledger */
+/* Ledger Load */
 async function loadLedger(){
 
 const id=firmSelect.value;
 
-const l=await fetch(API+"/api/ledger");
-ledger=await l.json();
+const inv=await fetch(API+"/api/invoices");
+const invoices=await inv.json();
 
-const r=await fetch(API+"/api/receipts");
-receipts=await r.json();
+const rec=await fetch(API+"/api/receipts");
+const receipts=await rec.json();
 
 /* Filter Firm */
-ledger=ledger.filter(x=>x.customer_id==id);
-receipts=receipts.filter(x=>x.customer_id==id);
+const i=invoices.filter(x=>x.customer_id==id);
+const r=receipts.filter(x=>x.customer_id==id);
 
 /* Combine */
 let data=[];
 
-ledger.forEach(x=>{
+/* Invoice Entries */
+i.forEach(x=>{
+
 data.push({
 date:x.created_at,
-type:"Invoice",
-amount:x.final_amount,
-invoice:"INV",
-nature:"Dr"
-});
+particular:`${monthText(x.period_from)} to ${monthText(x.period_to)}`,
+invoice:x.final_total,
+receipt:0
 });
 
-receipts.forEach(x=>{
+});
+
+/* Receipt Entries */
+r.forEach(x=>{
+
 data.push({
 date:x.created_at,
-type:"Receipt",
-amount:x.amount,
-invoice:"REC",
-nature:"Cr"
-});
+particular:x.nature,
+invoice:0,
+receipt:x.amount
 });
 
-/* Date Sort */
+});
+
+/* Sort Date */
 data.sort((a,b)=>new Date(a.date)-new Date(b.date));
 
 /* Running Balance */
 let balance=0;
-
 tbody.innerHTML="";
 
 data.forEach(d=>{
 
-if(d.nature=="Dr") balance+=d.amount;
-else balance-=d.amount;
+balance += d.invoice;
+balance -= d.receipt;
 
 tbody.innerHTML+=`
 <tr>
 <td>${formatDate(d.date)}</td>
-<td>${d.type}</td>
-<td>${d.nature=="Dr"?"₹"+d.amount:""}</td>
-<td>${d.nature=="Cr"?"₹"+d.amount:""}</td>
-<td>${d.nature}</td>
+<td>${d.particular}</td>
+<td>${d.invoice? "₹"+d.invoice:""}</td>
+<td>${d.receipt? "₹"+d.receipt:""}</td>
 <td>₹${balance}</td>
 </tr>
 `;
+
 });
 
 }
 
-/* Date Format */
-function formatDate(dt){
+/* Month Format */
+function monthText(m){
 
-const d=new Date(dt);
+if(!m) return "";
 
-return d.toLocaleDateString("en-GB",{
-day:"2-digit",
+const d=new Date(m);
+
+return d.toLocaleString("en-GB",{
 month:"short",
 year:"2-digit"
 });
 }
 
+/* Date Format */
+function formatDate(dt){
+
+return new Date(dt).toLocaleDateString("en-GB");
+}
+
 /* PDF */
-async function downloadPDF(){
+async function pdf(){
 
 const canvas=await html2canvas(ledgerBox);
-
 const img=canvas.toDataURL("image/png");
 
-const { jsPDF } = window.jspdf;
-
-const pdf=new jsPDF("p","mm","a4");
+const { jsPDF }=window.jspdf;
+const pdf=new jsPDF();
 
 pdf.addImage(img,"PNG",10,10,190,0);
-
 pdf.save("Ledger.pdf");
 }
 
