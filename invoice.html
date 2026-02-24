@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Create Invoice</title>
+<title>Invoice</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -12,7 +12,7 @@
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-padding:30px;
+padding:25px;
 }
 
 .card{
@@ -24,15 +24,12 @@ margin:auto;
 box-shadow:0 4px 14px rgba(0,0,0,0.1);
 }
 
-h2{
-color:#1f3c88;
-margin-top:0;
-}
+h2{color:#1f3c88;margin-top:0;}
 
 label{
 font-weight:600;
 display:block;
-margin-top:15px;
+margin-top:14px;
 }
 
 input,select{
@@ -50,7 +47,7 @@ gap:10px;
 }
 
 button{
-margin-top:20px;
+margin-top:18px;
 padding:12px;
 background:#1f3c88;
 color:white;
@@ -60,23 +57,18 @@ cursor:pointer;
 width:100%;
 }
 
-.invoice-preview{
+.preview{
 margin-top:25px;
 padding:20px;
 border:1px solid #ddd;
 border-radius:10px;
-background:white;
 display:none;
 }
 
 .row{
 display:flex;
 justify-content:space-between;
-margin-top:8px;
-}
-
-@media(max-width:600px){
-.grid{grid-template-columns:1fr;}
+margin-top:6px;
 }
 
 </style>
@@ -86,16 +78,15 @@ margin-top:8px;
 
 <div class="card">
 
-<h2>RS Associates — Create Invoice</h2>
+<h2>RS Associates — Invoice</h2>
 
 <label>Firm Name</label>
-<select id="firmSelect" onchange="fillCustomer()"></select>
+<select id="firmSelect"></select>
 
 <label>Person Name</label>
-<input id="person" readonly>
+<input id="person">
 
 <div class="grid">
-
 <div>
 <label>Invoice No</label>
 <input id="invoiceNo" readonly>
@@ -103,9 +94,8 @@ margin-top:8px;
 
 <div>
 <label>Date</label>
-<input id="date" readonly>
+<input id="date">
 </div>
-
 </div>
 
 <label>Time Period</label>
@@ -115,21 +105,21 @@ margin-top:8px;
 </div>
 
 <label>GST Fees</label>
-<input id="gst" type="number" oninput="autoCalc()">
+<input id="gst" type="number" oninput="calc()">
 
-<label>Audit Fees</label>
-<input id="audit" readonly>
+<label>Audit</label>
+<input id="audit">
 
-<label>ITR Fees</label>
-<input id="itr" readonly>
+<label>ITR</label>
+<input id="itr">
 
-<label>Other Charges</label>
-<input id="other" type="number" oninput="autoCalc()">
+<label>Other</label>
+<input id="other" type="number">
 
-<button onclick="generateInvoice()">Generate Invoice</button>
+<button onclick="saveInvoice()">Save / Update Invoice</button>
 <button onclick="copyJPG()">Copy Invoice JPG</button>
 
-<div id="invoiceBox" class="invoice-preview"></div>
+<div id="preview" class="preview"></div>
 
 </div>
 
@@ -138,6 +128,7 @@ margin-top:8px;
 const API="https://backend.rajeevyadav2596.workers.dev";
 
 let customers=[];
+let editMode=false;
 
 /* LOAD CUSTOMERS */
 async function loadCustomers(){
@@ -145,124 +136,142 @@ async function loadCustomers(){
 const res=await fetch(API+"/api/customers");
 customers=await res.json();
 
-firmSelect.innerHTML="<option>Select Firm</option>";
-
 customers.forEach(c=>{
 firmSelect.innerHTML+=
 `<option value="${c.id}">
 ${c.firm_name}
 </option>`;
 });
+
+checkEditMode();
 }
 loadCustomers();
 
-/* AUTO FILL CUSTOMER */
-function fillCustomer(){
+/* CHECK URL */
+function checkEditMode(){
 
-const c=customers.find(x=>x.id==firmSelect.value);
+const params=new URLSearchParams(location.search);
+const inv=params.get("invoice");
 
-person.value=c.person_name;
-gst.value=c.gst_charges;
-audit.value=c.audit_fee;
-itr.value=c.itr_fee;
+if(inv){
+editMode=true;
+loadInvoice(inv);
+}else{
+newInvoice();
 }
 
-/* AUTO CALC */
-function autoCalc(){
+}
 
+/* NEW INVOICE */
+function newInvoice(){
+
+let n=localStorage.invNo||0;
+n++;
+localStorage.invNo=n;
+
+invoiceNo.value="RS-"+n;
+date.value=new Date().toLocaleDateString("en-GB");
+
+}
+
+/* LOAD EXISTING */
+async function loadInvoice(no){
+
+const res=await fetch(API+"/api/invoice/"+no);
+const d=await res.json();
+
+firmSelect.value=d.customer_id;
+person.value=d.person_name;
+invoiceNo.value=d.invoice_no;
+date.value=new Date(d.created_at).toLocaleDateString("en-GB");
+
+gst.value=d.gst_total;
+audit.value=d.audit_total;
+itr.value=d.itr_total;
+other.value=d.other_total;
+
+from.value=d.period_from;
+to.value=d.period_to;
+
+}
+
+/* CALC */
+function calc(){
 audit.value=gst.value;
 itr.value=gst.value;
 }
 
-/* INVOICE NUMBER SERIES */
-function getInvoiceNo(){
+/* SAVE OR UPDATE */
+async function saveInvoice(){
 
-let n=localStorage.getItem("invNo")||0;
-n++;
-localStorage.setItem("invNo",n);
-
-return "RS-"+n;
-}
-
-/* DATE */
-date.value=new Date().toLocaleDateString("en-GB");
-
-/* GENERATE + SAVE */
-async function generateInvoice(){
-
-const invNo=getInvoiceNo();
-invoiceNo.value=invNo;
-
-const total=
-(+gst.value||0)+
-(+audit.value||0)+
-(+itr.value||0)+
-(+other.value||0);
-
-/* SAVE TO DB */
-await fetch(API+"/api/add-invoice",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
+const body={
 customer_id:firmSelect.value,
-invoice_no:invNo,
+invoice_no:invoiceNo.value,
 from:from.value,
 to:to.value,
 gst_total:+gst.value||0,
 audit_total:+audit.value||0,
 itr_total:+itr.value||0,
 other_total:+other.value||0,
-final_total:total
-})
+final_total:
+(+gst.value||0)+
+(+audit.value||0)+
+(+itr.value||0)+
+(+other.value||0)
+};
+
+/* IF EDIT */
+if(editMode){
+
+await fetch(API+"/api/update-invoice",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(body)
 });
 
-/* PREVIEW */
-invoiceBox.style.display="block";
+alert("Invoice Updated ✅");
 
-invoiceBox.innerHTML=`
+}else{
 
-<h3>RS Associates</h3>
-
-<div class="row">
-<span><b>Firm:</b> ${firmSelect.options[firmSelect.selectedIndex].text}</span>
-<span><b>Invoice:</b> ${invNo}</span>
-</div>
-
-<div class="row">
-<span><b>Person:</b> ${person.value}</span>
-<span><b>Date:</b> ${date.value}</span>
-</div>
-
-<hr>
-
-<div class="row"><span>GST</span><span>₹${gst.value}</span></div>
-<div class="row"><span>Audit</span><span>₹${audit.value}</span></div>
-<div class="row"><span>ITR</span><span>₹${itr.value}</span></div>
-<div class="row"><span>Other</span><span>₹${other.value}</span></div>
-
-<hr>
-
-<div class="row">
-<b>Total</b>
-<b>₹${total}</b>
-</div>
-
-`;
+await fetch(API+"/api/add-invoice",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(body)
+});
 
 alert("Invoice Saved ✅");
 
 }
 
-/* COPY JPG */
+showPreview(body);
+}
+
+/* PREVIEW */
+function showPreview(d){
+
+preview.style.display="block";
+
+preview.innerHTML=`
+<h3>Invoice ${d.invoice_no}</h3>
+<div class="row"><span>GST</span><span>₹${d.gst_total}</span></div>
+<div class="row"><span>Audit</span><span>₹${d.audit_total}</span></div>
+<div class="row"><span>ITR</span><span>₹${d.itr_total}</span></div>
+<div class="row"><span>Other</span><span>₹${d.other_total}</span></div>
+<hr>
+<b>Total ₹${d.final_total}</b>
+`;
+}
+
+/* JPG */
 async function copyJPG(){
 
-const canvas=await html2canvas(invoiceBox);
+const canvas=await html2canvas(preview);
 
 canvas.toBlob(async blob=>{
 await navigator.clipboard.write([
 new ClipboardItem({"image/png":blob})
 ]);
-alert("Invoice Copied as JPG");
+alert("Copied JPG ✅");
 });
 
 }
