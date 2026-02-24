@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Create Invoice</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<style>
+body{font-family:Segoe UI;background:#eef2f7;padding:20px}
+.card{background:white;padding:20px;border-radius:12px;max-width:700px;margin:auto}
+input,select{width:100%;padding:10px;margin-top:8px}
+button{margin-top:15px;padding:12px;background:#1f3c88;color:white;border:none;border-radius:8px;width:100%}
+.invoice{margin-top:20px;padding:20px;border:1px solid #ccc}
+</style>
+</head>
+
+<body>
+<div class="card">
+
+<h2>Create Invoice</h2>
+
+<label>Firm</label>
+<select id="firm"></select>
+
+<label>GST</label>
+<input id="gst" type="number">
+
+<label>Audit</label>
+<input id="audit">
+
+<label>ITR</label>
+<input id="itr">
+
+<label>Other</label>
+<input id="other">
+
+<button onclick="generate()">Generate</button>
+<button onclick="copyJPG()">Copy JPG</button>
+
+<div id="box" class="invoice" style="display:none"></div>
+
+</div>
+
+<script>
+
+const API="https://backend.rajeevyadav2596.workers.dev";
+let customers=[];
+
+fetch(API+"/api/customers")
+.then(r=>r.json())
+.then(d=>{
+customers=d;
+d.forEach(c=>{
+firm.innerHTML+=`<option value="${c.id}">${c.firm_name}</option>`;
+});
+});
+
+function invNo(){
+let n=localStorage.inv||0;n++;
+localStorage.inv=n;
+return "RS-"+n;
+}
+
+async function generate(){
+
+const no=invNo();
+const total=+gst.value+ +audit.value+ +itr.value+ +other.value;
+
+await fetch(API+"/api/add-invoice",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+customer_id:firm.value,
+invoice_no:no,
+from:"",
+to:"",
+gst_total:+gst.value,
+audit_total:+audit.value,
+itr_total:+itr.value,
+other_total:+other.value,
+final_total:total
+})
+});
+
+box.style.display="block";
+box.innerHTML=`Invoice ${no}<br>Total ₹${total}`;
+}
+
+function copyJPG(){
+html2canvas(box).then(c=>{
+navigator.clipboard.write([
+new ClipboardItem({"image/png":c.toBlob(()=>{})})
+]);
+});
+}
+</script>
+</body>
+</html>
