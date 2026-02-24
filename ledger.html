@@ -1,28 +1,256 @@
-<input id="search" placeholder="Search..."
-onkeyup="filter()">
+<!DOCTYPE html>
+<html>
+<head>
+<title>Ledger Dashboard</title>
 
-<table id="tbl" border="1"></table>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+
+body{
+font-family:Segoe UI;
+background:#eef2f7;
+margin:0;
+padding:20px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+max-width:1000px;
+margin:auto;
+box-shadow:0 4px 14px rgba(0,0,0,0.1);
+}
+
+h2{margin-top:0;color:#1f3c88;}
+
+select,input{
+padding:10px;
+border:1px solid #ccc;
+border-radius:6px;
+margin-top:10px;
+width:100%;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr 1fr;
+gap:10px;
+}
+
+@media(max-width:700px){
+.grid{grid-template-columns:1fr;}
+}
+
+button{
+margin-top:15px;
+padding:11px;
+background:#1f3c88;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+font-size:14px;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:8px;
+text-align:center;
+}
+
+th{
+background:#1f3c88;
+color:white;
+}
+
+tr:nth-child(even){
+background:#f7f9ff;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>Ledger Dashboard</h2>
+
+<!-- Search -->
+<label>Search Firm</label>
+<select id="firmSelect"></select>
+
+<!-- Period -->
+<div class="grid">
+<div>
+<label>From</label>
+<input type="month" id="from">
+</div>
+
+<div>
+<label>To</label>
+<input type="month" id="to">
+</div>
+
+<div>
+<button onclick="loadLedger()">Search Ledger</button>
+</div>
+</div>
+
+<button onclick="downloadPDF()">Copy / Download PDF</button>
+
+<!-- Ledger Table -->
+<div id="ledgerBox">
+
+<table id="ledgerTable">
+<thead>
+<tr>
+<th>Date</th>
+<th>Particulars</th>
+<th>Invoice</th>
+<th>Receipt</th>
+<th>Nature</th>
+<th>Closing Balance</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+</div>
 
 <script>
-fetch(API+"/api/ledger")
-.then(r=>r.json())
-.then(d=>{
-d.forEach(x=>{
-tbl.innerHTML+=`
-<tr>
-<td>${x.firm_name}</td>
-<td>${x.final_amount}</td>
-</tr>`;
+
+const API="https://backend.rajeevyadav2596.workers.dev";
+
+let customers=[];
+let ledger=[];
+let receipts=[];
+
+/* Load Firms */
+async function loadCustomers(){
+
+const res=await fetch(API+"/api/customers");
+customers=await res.json();
+
+firmSelect.innerHTML="<option>Select Firm</option>";
+
+customers.forEach(c=>{
+firmSelect.innerHTML+=
+`<option value="${c.id}">
+${c.firm_name}
+</option>`;
+});
+}
+
+loadCustomers();
+
+/* Load Ledger */
+async function loadLedger(){
+
+const id=firmSelect.value;
+
+const l=await fetch(API+"/api/ledger");
+ledger=await l.json();
+
+const r=await fetch(API+"/api/receipts");
+receipts=await r.json();
+
+/* Filter Firm */
+ledger=ledger.filter(x=>x.customer_id==id);
+receipts=receipts.filter(x=>x.customer_id==id);
+
+/* Combine */
+let data=[];
+
+ledger.forEach(x=>{
+data.push({
+date:x.created_at,
+type:"Invoice",
+amount:x.final_amount,
+invoice:"INV",
+nature:"Dr"
 });
 });
 
-function filter(){
-let v=search.value.toLowerCase();
-document.querySelectorAll("#tbl tr")
-.forEach(r=>{
-r.style.display=
-r.innerText.toLowerCase().includes(v)
-?"":"none";
+receipts.forEach(x=>{
+data.push({
+date:x.created_at,
+type:"Receipt",
+amount:x.amount,
+invoice:"REC",
+nature:"Cr"
+});
+});
+
+/* Date Sort */
+data.sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+/* Running Balance */
+let balance=0;
+
+tbody.innerHTML="";
+
+data.forEach(d=>{
+
+if(d.nature=="Dr") balance+=d.amount;
+else balance-=d.amount;
+
+tbody.innerHTML+=`
+<tr>
+<td>${formatDate(d.date)}</td>
+<td>${d.type}</td>
+<td>${d.nature=="Dr"?"₹"+d.amount:""}</td>
+<td>${d.nature=="Cr"?"₹"+d.amount:""}</td>
+<td>${d.nature}</td>
+<td>₹${balance}</td>
+</tr>
+`;
+});
+
+}
+
+/* Date Format */
+function formatDate(dt){
+
+const d=new Date(dt);
+
+return d.toLocaleDateString("en-GB",{
+day:"2-digit",
+month:"short",
+year:"2-digit"
 });
 }
+
+/* PDF */
+async function downloadPDF(){
+
+const canvas=await html2canvas(ledgerBox);
+
+const img=canvas.toDataURL("image/png");
+
+const { jsPDF } = window.jspdf;
+
+const pdf=new jsPDF("p","mm","a4");
+
+pdf.addImage(img,"PNG",10,10,190,0);
+
+pdf.save("Ledger.pdf");
+}
+
 </script>
+
+</body>
+</html>
