@@ -15,6 +15,8 @@ margin:0;
 padding:15px;
 }
 
+/* FORM */
+
 .card{
 background:white;
 padding:20px;
@@ -61,11 +63,16 @@ max-width:900px;
 margin:auto;
 }
 
-.top{
+/* HEADER */
+
+.header{
 display:flex;
 justify-content:space-between;
-flex-wrap:wrap;
 align-items:flex-start;
+}
+
+.left h3{
+margin:0;
 }
 
 .party{
@@ -73,6 +80,7 @@ color:green;
 font-weight:bold;
 font-size:18px;
 text-transform:capitalize;
+margin-top:5px;
 }
 
 .gstin{
@@ -92,16 +100,23 @@ font-size:18px;
 
 .date{
 font-weight:bold;
+margin-top:4px;
+}
+
+/* BILLING PERIOD CENTER */
+
+.periodBox{
+text-align:center;
+margin-top:15px;
 }
 
 .period{
 background:#1f3c88;
 color:white;
-padding:8px 12px;
-margin-top:15px;
+padding:8px 16px;
 display:inline-block;
-font-weight:bold;
 border-radius:6px;
+font-weight:bold;
 }
 
 /* TABLE */
@@ -118,9 +133,17 @@ padding:10px;
 text-align:left;
 }
 
+th.amount{
+text-align:right;
+}
+
 td{
 border-bottom:1px solid #ddd;
 padding:10px;
+}
+
+td.amount{
+text-align:right;
 }
 
 .gstRate{
@@ -141,16 +164,23 @@ font-weight:bold;
 font-size:18px;
 }
 
+.total td.amount{
+font-weight:bold;
+}
+
 /* MOBILE */
 
 @media(max-width:600px){
-.top{
+
+.header{
 flex-direction:column;
 gap:10px;
 }
+
 .right{
 text-align:left;
 }
+
 }
 
 </style>
@@ -211,9 +241,9 @@ text-align:left;
 
 <div id="invoice" class="invoice">
 
-<div class="top">
+<div class="header">
 
-<div>
+<div class="left">
 <h3>RS Associates</h3>
 <div class="party" id="invParty"></div>
 <div class="gstin" id="invGSTIN"></div>
@@ -226,14 +256,16 @@ text-align:left;
 
 </div>
 
+<div class="periodBox">
 <div class="period" id="invPeriod"></div>
+</div>
 
 <table>
 
 <thead>
 <tr>
 <th>Particulars</th>
-<th>Amount</th>
+<th class="amount">Amount</th>
 </tr>
 </thead>
 
@@ -242,7 +274,7 @@ text-align:left;
 <tfoot>
 <tr class="total">
 <td>Total</td>
-<td id="grandTotal"></td>
+<td class="amount" id="grandTotal"></td>
 </tr>
 </tfoot>
 
@@ -285,7 +317,7 @@ itrFee.value=c.itr_fee;
 
 }
 
-/* MONTH */
+/* MONTH CALC */
 function monthDiff(a,b){
 const d1=new Date(a);
 const d2=new Date(b);
@@ -333,34 +365,34 @@ GST Filing (${months} Months)
 GST Fees — <span>₹${gstFee.value} / Month</span>
 </div>
 </td>
-<td>₹${gstTotal}</td>
+<td class="amount">₹${gstTotal}</td>
 </tr>`;
 }
 
 if(auditFee.value>0)
-html+=`<tr><td>Audit</td><td>₹${auditFee.value}</td></tr>`;
+html+=`<tr><td>Audit</td><td class="amount">₹${auditFee.value}</td></tr>`;
 
 if(itrFee.value>0)
-html+=`<tr><td>ITR</td><td>₹${itrFee.value}</td></tr>`;
+html+=`<tr><td>ITR</td><td class="amount">₹${itrFee.value}</td></tr>`;
 
 if(other1Amt.value>0)
-html+=`<tr><td>${other1Title.value}</td><td>₹${other1Amt.value}</td></tr>`;
+html+=`<tr><td>${other1Title.value}</td><td class="amount">₹${other1Amt.value}</td></tr>`;
 
 if(other2Amt.value>0)
-html+=`<tr><td>${other2Title.value}</td><td>₹${other2Amt.value}</td></tr>`;
+html+=`<tr><td>${other2Title.value}</td><td class="amount">₹${other2Amt.value}</td></tr>`;
 
 if(other3Amt.value>0)
-html+=`<tr><td>${other3Title.value}</td><td>₹${other3Amt.value}</td></tr>`;
+html+=`<tr><td>${other3Title.value}</td><td class="amount">₹${other3Amt.value}</td></tr>`;
 
 if(discount.value>0)
-html+=`<tr class="discount"><td>Discount</td><td>-₹${discount.value}</td></tr>`;
+html+=`<tr class="discount"><td>Discount</td><td class="amount">-₹${discount.value}</td></tr>`;
 
 billBody.innerHTML=html;
 grandTotal.innerText="₹ "+total;
 
 }
 
-/* SAVE (TO BACKEND + RESET FORM ONLY) */
+/* SAVE */
 async function saveInvoice(){
 
 generateInvoice();
@@ -371,24 +403,22 @@ headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({ dummy:1 })
 });
 
-/* RESET FORM ONLY */
+/* Reset form only */
 document.querySelectorAll(".card input").forEach(i=>i.value="");
 party.value="";
 
-alert("Saved to database. Invoice remains for sharing.");
+alert("Saved to database. Invoice remains visible.");
 
 }
 
 /* SHARE */
 function shareJPG(){
-
 html2canvas(invoice).then(canvas=>{
 canvas.toBlob(blob=>{
 const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
 navigator.share({ files:[file], title:"Invoice" });
 });
 });
-
 }
 
 init();
