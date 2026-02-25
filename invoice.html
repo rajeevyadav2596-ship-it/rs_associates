@@ -15,7 +15,7 @@ margin:0;
 padding:15px;
 }
 
-/* FORM */
+/* ================= FORM ================= */
 
 .card{
 background:white;
@@ -24,12 +24,13 @@ border-radius:14px;
 max-width:900px;
 margin:auto;
 box-shadow:0 6px 20px rgba(0,0,0,0.08);
+margin-bottom:25px;
 }
 
 label{
 font-weight:600;
 display:block;
-margin-top:10px;
+margin-top:12px;
 }
 
 input,select{
@@ -48,15 +49,14 @@ border-radius:6px;
 background:#2d4a8a;
 color:white;
 font-weight:600;
-margin-top:10px;
+margin-top:12px;
 cursor:pointer;
 }
 
-/* ===== INVOICE ===== */
+/* ================= INVOICE ================= */
 
 .invoice{
 background:white;
-margin-top:25px;
 padding:20px;
 border-radius:14px;
 max-width:900px;
@@ -71,21 +71,8 @@ justify-content:space-between;
 align-items:flex-start;
 }
 
-.left h3{
+.left h2{
 margin:0;
-}
-
-.party{
-color:green;
-font-weight:bold;
-font-size:18px;
-text-transform:capitalize;
-margin-top:5px;
-}
-
-.gstin{
-font-weight:bold;
-margin-top:5px;
 }
 
 .right{
@@ -103,19 +90,39 @@ font-weight:bold;
 margin-top:4px;
 }
 
-/* BILLING PERIOD CENTER */
+/* PARTY */
 
-.periodBox{
+.party{
+color:green;
+font-weight:bold;
+font-size:20px;
+margin-top:10px;
+text-transform:capitalize;
+}
+
+.gstin{
+font-weight:bold;
+margin-top:5px;
+}
+
+/* BILLING PERIOD */
+
+.periodSection{
 text-align:center;
-margin-top:15px;
+margin-top:18px;
+}
+
+.periodTitle{
+font-weight:bold;
+margin-bottom:6px;
 }
 
 .period{
 background:#1f3c88;
 color:white;
-padding:8px 16px;
+padding:10px 20px;
+border-radius:8px;
 display:inline-block;
-border-radius:6px;
 font-weight:bold;
 }
 
@@ -124,7 +131,7 @@ font-weight:bold;
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:20px;
+margin-top:25px;
 }
 
 th{
@@ -135,6 +142,7 @@ text-align:left;
 
 th.amount{
 text-align:right;
+width:35%;
 }
 
 td{
@@ -144,6 +152,7 @@ padding:10px;
 
 td.amount{
 text-align:right;
+white-space:nowrap;
 }
 
 .gstRate{
@@ -159,26 +168,30 @@ color:red;
 font-weight:bold;
 }
 
-.total{
+.totalRow{
 font-weight:bold;
 font-size:18px;
 }
 
-.total td.amount{
+.paymentRow{
 font-weight:bold;
 }
 
-/* MOBILE */
+.balanceRow{
+font-weight:bold;
+font-size:18px;
+}
+
+/* MOBILE FIX */
 
 @media(max-width:600px){
 
 .header{
-flex-direction:column;
-gap:10px;
+flex-direction:row;
 }
 
 .right{
-text-align:left;
+text-align:right;
 }
 
 }
@@ -231,22 +244,23 @@ text-align:left;
 <label>Discount</label>
 <input id="discount">
 
+<label>Payment</label>
+<input id="payment">
+
 <button onclick="generateInvoice()">Generate Invoice</button>
 <button onclick="saveInvoice()">Save Invoice</button>
 <button onclick="shareJPG()">Share JPG</button>
 
 </div>
 
-<!-- ===== INVOICE ===== -->
+<!-- ================= INVOICE ================= -->
 
 <div id="invoice" class="invoice">
 
 <div class="header">
 
 <div class="left">
-<h3>RS Associates</h3>
-<div class="party" id="invParty"></div>
-<div class="gstin" id="invGSTIN"></div>
+<h2>RS Associates</h2>
 </div>
 
 <div class="right">
@@ -256,7 +270,11 @@ text-align:left;
 
 </div>
 
-<div class="periodBox">
+<div class="party" id="invParty"></div>
+<div class="gstin" id="invGSTIN"></div>
+
+<div class="periodSection">
+<div class="periodTitle">Billing Period</div>
 <div class="period" id="invPeriod"></div>
 </div>
 
@@ -272,9 +290,19 @@ text-align:left;
 <tbody id="billBody"></tbody>
 
 <tfoot>
-<tr class="total">
+<tr class="totalRow">
 <td>Total</td>
 <td class="amount" id="grandTotal"></td>
+</tr>
+
+<tr class="paymentRow">
+<td>Payment</td>
+<td class="amount" id="paymentDisplay"></td>
+</tr>
+
+<tr class="balanceRow">
+<td>Balance</td>
+<td class="amount" id="balanceDisplay"></td>
 </tr>
 </tfoot>
 
@@ -287,7 +315,6 @@ text-align:left;
 const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
 
-/* LOAD */
 async function init(){
 
 const res=await fetch(API+"/api/customers");
@@ -304,7 +331,6 @@ ${c.firm_name} - ${c.person_name}
 
 }
 
-/* LOAD CUSTOMER */
 function loadCustomer(){
 
 const c=customers.find(x=>x.id==party.value);
@@ -317,7 +343,6 @@ itrFee.value=c.itr_fee;
 
 }
 
-/* MONTH CALC */
 function monthDiff(a,b){
 const d1=new Date(a);
 const d2=new Date(b);
@@ -325,7 +350,6 @@ return (d2.getFullYear()-d1.getFullYear())*12 +
 (d2.getMonth()-d1.getMonth())+1;
 }
 
-/* PERIOD FORMAT */
 function formatPeriod(f,t){
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const d1=new Date(f);
@@ -333,7 +357,6 @@ const d2=new Date(t);
 return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
 }
 
-/* GENERATE */
 function generateInvoice(){
 
 const months=monthDiff(from.value,to.value);
@@ -347,6 +370,8 @@ let total=
 +other2Amt.value+
 +other3Amt.value-
 +discount.value;
+
+let balance= total - (+payment.value || 0);
 
 invParty.innerText=party.options[party.selectedIndex].text;
 invGSTIN.innerText="GSTIN: "+gstin.value;
@@ -388,11 +413,13 @@ if(discount.value>0)
 html+=`<tr class="discount"><td>Discount</td><td class="amount">-₹${discount.value}</td></tr>`;
 
 billBody.innerHTML=html;
+
 grandTotal.innerText="₹ "+total;
+paymentDisplay.innerText="₹ "+(+payment.value||0);
+balanceDisplay.innerText="₹ "+balance;
 
 }
 
-/* SAVE */
 async function saveInvoice(){
 
 generateInvoice();
@@ -403,15 +430,13 @@ headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({ dummy:1 })
 });
 
-/* Reset form only */
 document.querySelectorAll(".card input").forEach(i=>i.value="");
 party.value="";
 
-alert("Saved to database. Invoice remains visible.");
+alert("Saved. Invoice remains visible.");
 
 }
 
-/* SHARE */
 function shareJPG(){
 html2canvas(invoice).then(canvas=>{
 canvas.toBlob(blob=>{
