@@ -10,41 +10,67 @@
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-padding:20px;
+margin:0;
+padding:15px;
 }
+
+/* CARD */
 
 .card{
 background:white;
-padding:25px;
-max-width:420px;
+padding:22px;
+border-radius:14px;
+max-width:500px;
 margin:auto;
-border-radius:12px;
-box-shadow:0 4px 12px rgba(0,0,0,.08);
+box-shadow:0 6px 20px rgba(0,0,0,0.08);
 }
+
+h2{
+margin-top:0;
+}
+
+/* FORM */
 
 label{
 font-weight:600;
 display:block;
-margin-top:12px;
+margin-top:14px;
 }
 
 input,select{
 width:100%;
-padding:10px;
-margin-top:5px;
+padding:11px;
+margin-top:6px;
 border:1px solid #ccc;
 border-radius:6px;
+font-size:15px;
 }
+
+/* BUTTON */
 
 button{
 width:100%;
-padding:12px;
-margin-top:15px;
+padding:13px;
+border:none;
+border-radius:7px;
 background:#2d4a8a;
 color:white;
-border:none;
-border-radius:6px;
+font-weight:600;
+margin-top:18px;
 cursor:pointer;
+font-size:15px;
+}
+
+button:hover{
+background:#1f3c88;
+}
+
+/* MOBILE */
+
+@media(max-width:600px){
+.card{
+padding:18px;
+}
 }
 
 </style>
@@ -59,22 +85,22 @@ cursor:pointer;
 <label>Firm</label>
 <select id="firm"></select>
 
-<label>Date</label>
+<label>Receipt Date</label>
 <input type="date" id="date">
 
 <label>Amount</label>
-<input id="amount" type="number">
+<input type="number" id="amount" placeholder="Enter Amount">
 
-<label>Nature</label>
+<label>Nature of Payment</label>
 <select id="nature">
-<option>Cash</option>
-<option>Bank</option>
-<option>UPI</option>
-<option>Cheque</option>
-<option>Adjustment</option>
+<option value="Cash">Cash</option>
+<option value="Bank">Bank</option>
+<option value="UPI">UPI</option>
+<option value="Cheque">Cheque</option>
+<option value="Adjustment">Adjustment</option>
 </select>
 
-<button onclick="save()">Save Receipt</button>
+<button onclick="saveReceipt()">Save Receipt</button>
 
 </div>
 
@@ -82,23 +108,41 @@ cursor:pointer;
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 
-/* DEFAULT TODAY DATE */
-date.value = new Date().toISOString().split("T")[0];
+/* ================= LOAD CUSTOMERS ================= */
 
-/* LOAD CUSTOMERS */
-fetch(API+"/api/customers")
-.then(r=>r.json())
-.then(d=>{
-d.forEach(c=>{
-firm.innerHTML+=
-`<option value="${c.id}">
+async function loadFirms(){
+
+const res = await fetch(API+"/api/customers");
+const data = await res.json();
+
+firm.innerHTML='<option value="">Select Firm</option>';
+
+data.forEach(c=>{
+firm.innerHTML+=`
+<option value="${c.id}">
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
-});
 
-/* SAVE RECEIPT */
-async function save(){
+}
+
+/* ================= DEFAULT DATE ================= */
+
+date.value = new Date().toISOString().split("T")[0];
+
+/* ================= SAVE RECEIPT ================= */
+
+async function saveReceipt(){
+
+if(!firm.value){
+alert("Select Firm");
+return;
+}
+
+if(!amount.value){
+alert("Enter Amount");
+return;
+}
 
 await fetch(API+"/api/add-receipt",{
 method:"POST",
@@ -115,9 +159,17 @@ date: date.value
 
 alert("Receipt Saved ✅");
 
+/* RESET FORM */
+
 amount.value="";
+nature.value="Cash";
+date.value = new Date().toISOString().split("T")[0];
 
 }
+
+/* INIT */
+
+loadFirms();
 
 </script>
 
