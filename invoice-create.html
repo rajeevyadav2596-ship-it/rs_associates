@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Create Invoice</title>
+<title>Sale Invoice</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -9,29 +9,34 @@
 <style>
 
 body{
-font-family:'Segoe UI';
+font-family:Segoe UI;
 background:#eef2f7;
 margin:0;
+padding:15px;
 }
 
-.container{
-max-width:900px;
-margin:auto;
-padding:20px;
-}
+/* ===== FORM ===== */
 
 .card{
 background:white;
-padding:25px;
+padding:20px;
 border-radius:14px;
+max-width:900px;
+margin:auto;
 box-shadow:0 6px 20px rgba(0,0,0,0.08);
+margin-bottom:25px;
+}
+
+label{
+font-weight:600;
+display:block;
+margin-top:12px;
 }
 
 input,select{
 width:100%;
 padding:10px;
-margin-top:6px;
-margin-bottom:14px;
+margin-top:5px;
 border:1px solid #ccc;
 border-radius:6px;
 }
@@ -44,25 +49,29 @@ border-radius:6px;
 background:#2d4a8a;
 color:white;
 font-weight:600;
+margin-top:12px;
 cursor:pointer;
-margin-top:8px;
 }
 
-/* ===== INVOICE DESIGN ===== */
+/* ===== INVOICE ===== */
 
-.invoiceBox{
+.invoice{
 background:white;
-padding:30px;
-margin-top:30px;
+padding:20px;
 border-radius:14px;
+max-width:900px;
+margin:auto;
 }
 
-.invHeader{
+/* HEADER */
+
+.header{
 display:flex;
 justify-content:space-between;
-border-bottom:2px solid #ddd;
-padding-bottom:10px;
-margin-bottom:20px;
+}
+
+.right{
+text-align:right;
 }
 
 .invNo{
@@ -71,17 +80,82 @@ font-weight:bold;
 font-size:20px;
 }
 
+.date{
+font-weight:bold;
+}
+
+/* PARTY */
+
+.party{
+color:green;
+font-weight:bold;
+font-size:20px;
+margin-top:10px;
+text-transform:capitalize;
+}
+
+.gstin{
+font-weight:bold;
+margin-top:5px;
+}
+
+/* PERIOD */
+
+.periodBox{
+text-align:center;
+margin-top:20px;
+}
+
+.periodTitle{
+font-weight:bold;
+color:red;
+}
+
+.period{
+background:#1f3c88;
+color:white;
+display:inline-block;
+padding:10px 20px;
+border-radius:8px;
+font-weight:bold;
+margin-top:5px;
+}
+
+/* TABLE */
+
 table{
 width:100%;
 border-collapse:collapse;
+margin-top:25px;
 }
 
-td,th{
+th{
+border-bottom:2px solid black;
 padding:10px;
-border-bottom:1px solid #ddd;
+text-align:left;
 }
 
-.total{
+th.amount{
+text-align:right;
+width:35%;
+}
+
+td{
+border-bottom:1px solid #ddd;
+padding:10px;
+}
+
+td.amount{
+text-align:right;
+white-space:nowrap;
+}
+
+.discount{
+color:red;
+font-weight:bold;
+}
+
+.totalRow{
 font-weight:bold;
 font-size:18px;
 }
@@ -91,16 +165,20 @@ font-size:18px;
 
 <body>
 
-<div class="container">
+<!-- ================= FORM ================= -->
 
 <div class="card">
 
-<h2>Create Invoice</h2>
+<h2>Create Sale Invoice</h2>
 
+<label>Select Party</label>
 <select id="party" onchange="loadCustomer()"></select>
 
-<input id="person" placeholder="Person Name">
-<input id="gstin" placeholder="GSTIN">
+<label>Person Name</label>
+<input id="person">
+
+<label>GSTIN</label>
+<input id="gstin">
 
 <label>From</label>
 <input type="month" id="from">
@@ -108,65 +186,88 @@ font-size:18px;
 <label>To</label>
 <input type="month" id="to">
 
-<input id="gstFee" placeholder="GST Charges / Month">
-<input id="auditFee" placeholder="Audit Fee">
-<input id="itrFee" placeholder="ITR Fee">
+<label>GST Charges / Month</label>
+<input id="gstFee">
 
-<input id="other1Title" placeholder="Other Title 1">
-<input id="other1Amt" placeholder="Other Amount 1">
+<label>Audit</label>
+<input id="auditFee">
 
-<input id="discount" placeholder="Discount">
-<input id="payment" placeholder="Payment">
+<label>ITR</label>
+<input id="itrFee">
+
+<label>Other Title 1</label>
+<input id="other1Title">
+<input id="other1Amt">
+
+<label>Other Title 2</label>
+<input id="other2Title">
+<input id="other2Amt">
+
+<label>Other Title 3</label>
+<input id="other3Title">
+<input id="other3Amt">
+
+<label>Discount</label>
+<input id="discount">
+
+<label>Payment</label>
+<input id="payment">
 
 <button onclick="generateInvoice()">Generate Invoice</button>
 <button onclick="saveInvoice()">Save Invoice</button>
-<button onclick="downloadJPG()">Share JPG</button>
+<button onclick="shareJPG()">Share JPG</button>
 
 </div>
 
-<!-- ===== INVOICE PREVIEW ===== -->
+<!-- ================= INVOICE ================= -->
 
-<div id="invoice" class="invoiceBox">
+<div id="invoice" class="invoice">
 
-<div class="invHeader">
+<div class="header">
+<div><h2>RS Associates</h2></div>
 
-<div>
-<h3>RS Associates</h3>
-<div id="invParty"></div>
-<div id="invGSTIN"></div>
+<div class="right">
+<div class="invNo" id="invNo"></div>
+<div class="date" id="invDate"></div>
+</div>
 </div>
 
-<div>
-<div class="invNo" id="invNo">RS-000</div>
-<div id="invPeriod"></div>
-</div>
+<div class="party" id="invParty"></div>
+<div class="gstin" id="invGSTIN"></div>
 
+<div class="periodBox">
+<div class="periodTitle">Billing Period</div>
+<div class="period" id="invPeriod"></div>
 </div>
 
 <table>
+<thead>
+<tr>
+<th>Particulars</th>
+<th class="amount">Amount</th>
+</tr>
+</thead>
+
 <tbody id="billBody"></tbody>
 
 <tfoot>
-
-<tr class="total">
+<tr class="totalRow">
 <td>Total</td>
-<td id="grandTotal"></td>
+<td class="amount" id="grandTotal"></td>
 </tr>
 
 <tr>
 <td>Payment</td>
-<td id="paymentShow"></td>
+<td class="amount" id="paymentDisplay"></td>
 </tr>
 
-<tr>
+<tr class="totalRow">
 <td>Balance</td>
-<td id="balanceShow"></td>
+<td class="amount" id="balanceDisplay"></td>
 </tr>
-
 </tfoot>
-</table>
 
-</div>
+</table>
 
 </div>
 
@@ -175,146 +276,130 @@ font-size:18px;
 const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
 
-/* ================= LOAD CUSTOMERS ================= */
+/* ===== LOAD CUSTOMERS ===== */
 
 async function init(){
-
 const res=await fetch(API+"/api/customers");
 customers=await res.json();
 
-party.innerHTML='<option>Select Party</option>';
+party.innerHTML='<option value="">Select Party</option>';
 
 customers.forEach(c=>{
-party.innerHTML+=
-`<option value="${c.id}">
+party.innerHTML+=`
+<option value="${c.id}">
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
-
-/* PREFILL IF OPENED FROM LEDGER */
-
-const urlParams = new URLSearchParams(window.location.search);
-const invoiceNo = urlParams.get("invoice");
-
-if(invoiceNo){
-loadInvoice(invoiceNo);
 }
 
-}
-
-init();
-
-/* ================= LOAD CUSTOMER ================= */
+/* ===== AUTO FILL ===== */
 
 function loadCustomer(){
-
 const c=customers.find(x=>x.id==party.value);
-
 person.value=c.person_name;
 gstin.value=c.gstin;
 gstFee.value=c.gst_charges;
 auditFee.value=c.audit_fee;
 itrFee.value=c.itr_fee;
-
 }
 
-/* ================= LOAD EXISTING INVOICE ================= */
-
-async function loadInvoice(no){
-
-const res=await fetch(API+"/api/invoice/"+no);
-const d=await res.json();
-
-party.value=d.customer_id;
-person.value=d.person_name;
-gstin.value=d.gstin;
-from.value=d.period_from;
-to.value=d.period_to;
-gstFee.value=d.gst_total/d.months;
-auditFee.value=d.audit_total;
-itrFee.value=d.itr_total;
-
-generateInvoice();
-
-invNo.innerText=d.invoice_no;
-
-}
-
-/* ================= MONTH DIFF ================= */
+/* ===== MONTH DIFF ===== */
 
 function monthDiff(a,b){
-
 const d1=new Date(a);
 const d2=new Date(b);
-
-return (d2.getFullYear()-d1.getFullYear())*12 +
+return (d2.getFullYear()-d1.getFullYear())*12+
 (d2.getMonth()-d1.getMonth())+1;
-
 }
 
-/* ================= FORMAT PERIOD ================= */
+/* ===== PERIOD FORMAT ===== */
 
 function formatPeriod(f,t){
-
-const m=["Jan","Feb","Mar","Apr","May","Jun",
-"Jul","Aug","Sep","Oct","Nov","Dec"];
-
+const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const d1=new Date(f);
 const d2=new Date(t);
-
-return `${m[d1.getMonth()]}-${d1.getFullYear()} 
-to 
-${m[d2.getMonth()]}-${d2.getFullYear()}`;
-
+return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
 }
 
-/* ================= GENERATE ================= */
+/* ===== GENERATE ===== */
 
 function generateInvoice(){
 
 const months=monthDiff(from.value,to.value);
-const gstTotal=months*gstFee.value;
+const gstTotal=months*(+gstFee.value||0);
 
 let total=
-+gstTotal+
-+ +auditFee.value+
-+ +itrFee.value+
-+ +other1Amt.value-
-+ +discount.value;
+gstTotal+
+(+auditFee.value||0)+
+(+itrFee.value||0)+
+(+other1Amt.value||0)+
+(+other2Amt.value||0)+
+(+other3Amt.value||0)-
+(+discount.value||0);
 
 let balance=total-(+payment.value||0);
 
 invParty.innerText=party.options[party.selectedIndex].text;
 invGSTIN.innerText="GSTIN: "+gstin.value;
+invDate.innerText=new Date().toLocaleDateString();
 invPeriod.innerText=formatPeriod(from.value,to.value);
 
-billBody.innerHTML=`
-<tr><td>GST Filing (${months} Months)</td><td>₹${gstTotal}</td></tr>
-<tr><td>Audit</td><td>₹${auditFee.value}</td></tr>
-<tr><td>ITR</td><td>₹${itrFee.value}</td></tr>
-<tr><td>${other1Title.value}</td><td>₹${other1Amt.value}</td></tr>
-<tr><td style="color:red;">Discount</td><td style="color:red;">-₹${discount.value}</td></tr>
-`;
+let html="";
+
+if(gstTotal>0){
+html+=`
+<tr>
+<td>
+GST Filing (${months} Months)
+<br><b>GST Fees — ₹${gstFee.value} / Month</b>
+</td>
+<td class="amount">₹${gstTotal}</td>
+</tr>`;
+}
+
+if(auditFee.value>0)
+html+=`<tr><td>Audit</td><td class="amount">₹${auditFee.value}</td></tr>`;
+
+if(itrFee.value>0)
+html+=`<tr><td>ITR</td><td class="amount">₹${itrFee.value}</td></tr>`;
+
+if(other1Amt.value>0)
+html+=`<tr><td>${other1Title.value}</td><td class="amount">₹${other1Amt.value}</td></tr>`;
+
+if(other2Amt.value>0)
+html+=`<tr><td>${other2Title.value}</td><td class="amount">₹${other2Amt.value}</td></tr>`;
+
+if(other3Amt.value>0)
+html+=`<tr><td>${other3Title.value}</td><td class="amount">₹${other3Amt.value}</td></tr>`;
+
+if(discount.value>0)
+html+=`<tr class="discount"><td>Discount</td><td class="amount">-₹${discount.value}</td></tr>`;
+
+billBody.innerHTML=html;
 
 grandTotal.innerText="₹ "+total;
-paymentShow.innerText="₹ "+(+payment.value||0);
-balanceShow.innerText="₹ "+balance;
+paymentDisplay.innerText="₹ "+(+payment.value||0);
+balanceDisplay.innerText="₹ "+balance;
 
 }
 
-/* ================= SAVE ================= */
+/* ===== SAVE ===== */
 
 async function saveInvoice(){
 
-const months=monthDiff(from.value,to.value);
-const gstTotal=months*gstFee.value;
+generateInvoice();
 
-const total=
-+gstTotal+
-+ +auditFee.value+
-+ +itrFee.value+
-+ +other1Amt.value-
-+ +discount.value;
+const months=monthDiff(from.value,to.value);
+const gstTotal=months*(+gstFee.value||0);
+
+let total=
+gstTotal+
+(+auditFee.value||0)+
+(+itrFee.value||0)+
+(+other1Amt.value||0)+
+(+other2Amt.value||0)+
+(+other3Amt.value||0)-
+(+discount.value||0);
 
 const res=await fetch(API+"/api/add-invoice",{
 method:"POST",
@@ -324,17 +409,21 @@ body:JSON.stringify({
 customer_id:party.value,
 from:from.value,
 to:to.value,
-months,
+months:months,
+
 gst_total:gstTotal,
-audit_total:auditFee.value,
-itr_total:itrFee.value,
+audit_total:+auditFee.value||0,
+itr_total:+itrFee.value||0,
 
 other1_name:other1Title.value,
-other1_amount:other1Amt.value,
+other1_amount:+other1Amt.value||0,
+other2_name:other2Title.value,
+other2_amount:+other2Amt.value||0,
+other3_name:other3Title.value,
+other3_amount:+other3Amt.value||0,
 
-discount:discount.value,
-payment:payment.value,
-
+discount:+discount.value||0,
+payment:+payment.value||0,
 final_total:total
 
 })
@@ -343,21 +432,22 @@ final_total:total
 const data=await res.json();
 invNo.innerText=data.invoice_no;
 
-alert("Invoice Saved");
+alert("Invoice Saved ✅");
 
 }
 
-/* ================= JPG ================= */
+/* ===== SHARE JPG ===== */
 
-function downloadJPG(){
-
-html2canvas(document.getElementById("invoice"))
-.then(canvas=>{
-const file=canvas.toDataURL();
-window.open(file);
+function shareJPG(){
+html2canvas(invoice).then(canvas=>{
+canvas.toBlob(blob=>{
+const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
+navigator.share({ files:[file], title:"Invoice" });
 });
-
+});
 }
+
+init();
 
 </script>
 
