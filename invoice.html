@@ -7,6 +7,7 @@
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
+
 body{
 font-family:Segoe UI;
 background:#eef2f7;
@@ -62,12 +63,16 @@ max-width:900px;
 margin:auto;
 }
 
+/* HEADER */
+
 .header{
 display:flex;
 justify-content:space-between;
 }
 
-.right{text-align:right;}
+.right{
+text-align:right;
+}
 
 .invNo{
 color:red;
@@ -75,7 +80,11 @@ font-weight:bold;
 font-size:20px;
 }
 
-.date{font-weight:bold;}
+.date{
+font-weight:bold;
+}
+
+/* PARTY */
 
 .party{
 color:green;
@@ -85,11 +94,22 @@ margin-top:10px;
 text-transform:capitalize;
 }
 
-.gstin{font-weight:bold;margin-top:5px;}
+.gstin{
+font-weight:bold;
+margin-top:5px;
+}
 
-.periodBox{text-align:center;margin-top:20px;}
+/* PERIOD */
 
-.periodTitle{font-weight:bold;color:red;}
+.periodBox{
+text-align:center;
+margin-top:20px;
+}
+
+.periodTitle{
+font-weight:bold;
+color:red;
+}
 
 .period{
 background:#1f3c88;
@@ -100,6 +120,8 @@ border-radius:8px;
 font-weight:bold;
 margin-top:5px;
 }
+
+/* TABLE */
 
 table{
 width:100%;
@@ -113,18 +135,31 @@ padding:10px;
 text-align:left;
 }
 
-th.amount{text-align:right;width:35%;}
+th.amount{
+text-align:right;
+width:35%;
+}
 
 td{
 border-bottom:1px solid #ddd;
 padding:10px;
 }
 
-td.amount{text-align:right;white-space:nowrap;}
+td.amount{
+text-align:right;
+white-space:nowrap;
+}
 
-.discount{color:red;font-weight:bold;}
+.discount{
+color:red;
+font-weight:bold;
+}
 
-.totalRow{font-weight:bold;font-size:18px;}
+.totalRow{
+font-weight:bold;
+font-size:18px;
+}
+
 </style>
 </head>
 
@@ -241,10 +276,9 @@ td.amount{text-align:right;white-space:nowrap;}
 const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
 
-/* ================= LOAD CUSTOMERS ================= */
+/* ===== LOAD CUSTOMERS ===== */
 
 async function init(){
-
 const res=await fetch(API+"/api/customers");
 customers=await res.json();
 
@@ -256,66 +290,12 @@ party.innerHTML+=`
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
-
-/* ===== EDIT MODE CHECK ===== */
-
-const params=new URLSearchParams(window.location.search);
-const invoiceNo=params.get("invoice");
-
-if(invoiceNo){
-loadInvoice(invoiceNo);
 }
 
-}
-
-init();
-
-/* ================= PREFILL INVOICE ================= */
-
-async function loadInvoice(no){
-
-const res=await fetch(API+"/api/invoice/"+no);
-const d=await res.json();
-
-if(!d.invoice_no) return;
-
-invNo.innerText=d.invoice_no;
-invDate.innerText=new Date(d.created_at).toLocaleDateString();
-
-party.value=d.customer_id;
-loadCustomer();
-
-person.value=d.person_name;
-gstin.value=d.gstin;
-
-from.value=d.period_from;
-to.value=d.period_to;
-
-gstFee.value=d.gst_total/(d.months||1);
-auditFee.value=d.audit_total;
-itrFee.value=d.itr_total;
-
-other1Title.value=d.other1_name;
-other1Amt.value=d.other1_amount;
-
-other2Title.value=d.other2_name;
-other2Amt.value=d.other2_amount;
-
-other3Title.value=d.other3_name;
-other3Amt.value=d.other3_amount;
-
-discount.value=d.discount;
-payment.value=d.payment;
-
-generateInvoice();
-
-}
-
-/* ================= AUTO FILL ================= */
+/* ===== AUTO FILL ===== */
 
 function loadCustomer(){
 const c=customers.find(x=>x.id==party.value);
-if(!c) return;
 person.value=c.person_name;
 gstin.value=c.gstin;
 gstFee.value=c.gst_charges;
@@ -323,7 +303,7 @@ auditFee.value=c.audit_fee;
 itrFee.value=c.itr_fee;
 }
 
-/* ================= MONTH CALC ================= */
+/* ===== MONTH DIFF ===== */
 
 function monthDiff(a,b){
 const d1=new Date(a);
@@ -332,7 +312,7 @@ return (d2.getFullYear()-d1.getFullYear())*12+
 (d2.getMonth()-d1.getMonth())+1;
 }
 
-/* ================= PERIOD FORMAT ================= */
+/* ===== PERIOD FORMAT ===== */
 
 function formatPeriod(f,t){
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -341,7 +321,7 @@ const d2=new Date(t);
 return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
 }
 
-/* ================= GENERATE ================= */
+/* ===== GENERATE ===== */
 
 function generateInvoice(){
 
@@ -364,11 +344,38 @@ invGSTIN.innerText="GSTIN: "+gstin.value;
 invDate.innerText=new Date().toLocaleDateString();
 invPeriod.innerText=formatPeriod(from.value,to.value);
 
-billBody.innerHTML=`
+let html="";
+
+if(gstTotal>0){
+html+=`
 <tr>
-<td>GST Filing (${months} Months)</td>
+<td>
+GST Filing (${months} Months)
+<br><b>GST Fees — ₹${gstFee.value} / Month</b>
+</td>
 <td class="amount">₹${gstTotal}</td>
 </tr>`;
+}
+
+if(auditFee.value>0)
+html+=`<tr><td>Audit</td><td class="amount">₹${auditFee.value}</td></tr>`;
+
+if(itrFee.value>0)
+html+=`<tr><td>ITR</td><td class="amount">₹${itrFee.value}</td></tr>`;
+
+if(other1Amt.value>0)
+html+=`<tr><td>${other1Title.value}</td><td class="amount">₹${other1Amt.value}</td></tr>`;
+
+if(other2Amt.value>0)
+html+=`<tr><td>${other2Title.value}</td><td class="amount">₹${other2Amt.value}</td></tr>`;
+
+if(other3Amt.value>0)
+html+=`<tr><td>${other3Title.value}</td><td class="amount">₹${other3Amt.value}</td></tr>`;
+
+if(discount.value>0)
+html+=`<tr class="discount"><td>Discount</td><td class="amount">-₹${discount.value}</td></tr>`;
+
+billBody.innerHTML=html;
 
 grandTotal.innerText="₹ "+total;
 paymentDisplay.innerText="₹ "+(+payment.value||0);
@@ -376,22 +383,71 @@ balanceDisplay.innerText="₹ "+balance;
 
 }
 
-/* ================= SAVE ================= */
+/* ===== SAVE ===== */
 
 async function saveInvoice(){
-alert("Update API can be added next.");
+
+generateInvoice();
+
+const months=monthDiff(from.value,to.value);
+const gstTotal=months*(+gstFee.value||0);
+
+let total=
+gstTotal+
+(+auditFee.value||0)+
+(+itrFee.value||0)+
+(+other1Amt.value||0)+
+(+other2Amt.value||0)+
+(+other3Amt.value||0)-
+(+discount.value||0);
+
+const res=await fetch(API+"/api/add-invoice",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+
+customer_id:party.value,
+from:from.value,
+to:to.value,
+months:months,
+
+gst_total:gstTotal,
+audit_total:+auditFee.value||0,
+itr_total:+itrFee.value||0,
+
+other1_name:other1Title.value,
+other1_amount:+other1Amt.value||0,
+other2_name:other2Title.value,
+other2_amount:+other2Amt.value||0,
+other3_name:other3Title.value,
+other3_amount:+other3Amt.value||0,
+
+discount:+discount.value||0,
+payment:+payment.value||0,
+final_total:total
+
+})
+});
+
+const data=await res.json();
+invNo.innerText=data.invoice_no;
+
+alert("Invoice Saved ✅");
+
 }
 
-/* ================= JPG ================= */
+/* ===== SHARE JPG ===== */
 
 function shareJPG(){
 html2canvas(invoice).then(canvas=>{
 canvas.toBlob(blob=>{
 const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
-navigator.share({ files:[file] });
+navigator.share({ files:[file], title:"Invoice" });
 });
 });
 }
+
+init();
 
 </script>
 
