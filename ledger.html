@@ -1,106 +1,290 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ledger</title>
+<title>Ledger Dashboard</title>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
 <style>
-body{font-family:Segoe UI;background:#eef2f7;padding:15px}
-.table-wrap{overflow-x:auto}
-table{min-width:700px;border-collapse:collapse;width:100%}
-th,td{border:1px solid #ddd;padding:8px;text-align:center}
-th{background:#1f3c88;color:white}
-.link{color:#1f3c88;cursor:pointer;text-decoration:underline}
+
+body{
+font-family:'Segoe UI';
+background:#eef2f7;
+margin:0;
+padding:15px;
+}
+
+/* HEADER */
+
+.topbar{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin-bottom:15px;
+}
+
+select,button{
+padding:10px;
+border-radius:6px;
+border:1px solid #ccc;
+font-weight:600;
+}
+
+button{
+background:#1f3c88;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+/* LEDGER CARD */
+
+.card{
+background:white;
+padding:15px;
+border-radius:12px;
+box-shadow:0 6px 18px rgba(0,0,0,0.08);
+overflow-x:auto;
+}
+
+/* TABLE */
+
+table{
+width:100%;
+min-width:720px;
+border-collapse:collapse;
+}
+
+th{
+background:#1f3c88;
+color:white;
+padding:10px;
+text-align:left;
+}
+
+td{
+padding:10px;
+border-bottom:1px solid #ddd;
+}
+
+.amount{
+text-align:right;
+white-space:nowrap;
+font-weight:600;
+}
+
+.balance{
+font-weight:bold;
+}
+
+.link{
+color:#1f3c88;
+cursor:pointer;
+text-decoration:underline;
+font-weight:600;
+}
+
+/* MOBILE */
+
+@media(max-width:600px){
+
+table{
+min-width:600px;
+}
+
+}
+
 </style>
 </head>
 
 <body>
 
-<select id="firm"></select>
-<button onclick="load()">Search</button>
-<button onclick="copy()">Copy JPG</button>
+<!-- TOP BAR -->
 
-<div id="box" class="table-wrap">
+<div class="topbar">
+
+<select id="firm"></select>
+
+<button onclick="loadLedger()">Search</button>
+
+<button onclick="shareLedger()">Share JPG</button>
+
+</div>
+
+<!-- LEDGER -->
+
+<div id="ledgerBox" class="card">
+
 <table>
+
 <thead>
 <tr>
 <th>Date</th>
 <th>Invoice</th>
 <th>Particular</th>
-<th>Dr</th>
-<th>Cr</th>
-<th>Bal</th>
+<th class="amount">Dr</th>
+<th class="amount">Cr</th>
+<th class="amount">Balance</th>
 </tr>
 </thead>
+
 <tbody id="tb"></tbody>
+
 </table>
+
 </div>
 
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 
+/* LOAD FIRMS */
+
 fetch(API+"/api/customers")
 .then(r=>r.json())
 .then(d=>{
+
+firm.innerHTML='<option value="">Select Firm</option>';
+
 d.forEach(c=>{
-firm.innerHTML+=`<option value="${c.id}">${c.firm_name}</option>`;
-});
+firm.innerHTML+=`
+<option value="${c.id}">
+${c.firm_name} - ${c.person_name}
+</option>`;
 });
 
-async function load(){
+});
+
+/* LOAD LEDGER */
+
+async function loadLedger(){
 
 const res=await fetch(API+"/api/ledger-dashboard");
 const data=await res.json();
 
-const f=data.filter(x=>x.customer_id==firm.value);
+const rows=data.filter(x=>x.customer_id==firm.value);
 
-let bal=0;tb.innerHTML="";
+let bal=0;
+tb.innerHTML="";
 
-f.forEach(d=>{
+rows.forEach(d=>{
 
-let dr="",cr="",p="";
+let dr="",cr="",particular="";
+
+/* INVOICE */
 
 if(d.invoice_amount){
+
 dr="₹"+d.invoice_amount;
 bal+=d.invoice_amount;
-p=d.period_from+" to "+d.period_to;
+
+particular=
+formatPeriod(d.period_from,d.period_to);
+
 }
 
+/* RECEIPT */
+
 if(d.receipt_amount){
+
 cr="₹"+d.receipt_amount;
 bal-=d.receipt_amount;
-p=d.type;
+
+particular=d.type;
+
 }
 
 tb.innerHTML+=`
 <tr>
-<td>${d.date}</td>
+
+<td>${formatDate(d.date)}</td>
+
 <td class="link"
-onclick="openInv('${d.invoice_no}')">
+onclick="openInvoice('${d.invoice_no}')">
 ${d.invoice_no||""}
 </td>
-<td>${p}</td>
-<td>${dr}</td>
-<td>${cr}</td>
-<td>₹${bal}</td>
+
+<td>${particular}</td>
+
+<td class="amount">${dr}</td>
+
+<td class="amount">${cr}</td>
+
+<td class="amount balance">₹${bal}</td>
+
 </tr>`;
+
 });
 
 }
 
-function openInv(no){
-if(no) window.open("invoice.html?invoice="+no);
+/* FORMAT PERIOD */
+
+function formatPeriod(f,t){
+
+if(!f||!t) return "";
+
+const m=["Jan","Feb","Mar","Apr","May","Jun",
+"Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const d1=new Date(f);
+const d2=new Date(t);
+
+return `${m[d1.getMonth()]} ${d1.getFullYear()}
+to
+${m[d2.getMonth()]} ${d2.getFullYear()}`;
+
 }
 
-function copy(){
-html2canvas(box).then(c=>{
-navigator.clipboard.write([
-new ClipboardItem({"image/png":c.toBlob(()=>{})})
-]);
+/* FORMAT DATE */
+
+function formatDate(d){
+
+return new Date(d)
+.toLocaleDateString("en-GB");
+
+}
+
+/* OPEN INVOICE */
+
+function openInvoice(no){
+
+if(!no) return;
+
+window.open(
+"invoice.html?invoice="+no,
+"_blank"
+);
+
+}
+
+/* SHARE JPG */
+
+function shareLedger(){
+
+html2canvas(ledgerBox).then(canvas=>{
+
+canvas.toBlob(blob=>{
+
+const file=new File(
+[blob],
+"Ledger.jpg",
+{ type:"image/jpeg" }
+);
+
+navigator.share({
+files:[file],
+title:"Ledger"
 });
+
+});
+
+});
+
 }
 
 </script>
+
 </body>
 </html>
