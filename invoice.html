@@ -14,6 +14,8 @@ margin:0;
 padding:15px;
 }
 
+/* ===== FORM ===== */
+
 .card{
 background:white;
 padding:20px;
@@ -49,6 +51,8 @@ font-weight:600;
 margin-top:12px;
 cursor:pointer;
 }
+
+/* ===== INVOICE ===== */
 
 .invoice{
 background:white;
@@ -126,6 +130,8 @@ td.amount{text-align:right;white-space:nowrap;}
 
 <body>
 
+<!-- ================= FORM ================= -->
+
 <div class="card">
 
 <h2>Create Sale Invoice</h2>
@@ -178,10 +184,13 @@ td.amount{text-align:right;white-space:nowrap;}
 
 </div>
 
+<!-- ================= INVOICE ================= -->
+
 <div id="invoice" class="invoice">
 
 <div class="header">
 <div><h2>RS Associates</h2></div>
+
 <div class="right">
 <div class="invNo" id="invNo"></div>
 <div class="date" id="invDate"></div>
@@ -203,21 +212,26 @@ td.amount{text-align:right;white-space:nowrap;}
 <th class="amount">Amount</th>
 </tr>
 </thead>
+
 <tbody id="billBody"></tbody>
+
 <tfoot>
 <tr class="totalRow">
 <td>Total</td>
 <td class="amount" id="grandTotal"></td>
 </tr>
+
 <tr>
 <td>Payment</td>
 <td class="amount" id="paymentDisplay"></td>
 </tr>
+
 <tr class="totalRow">
 <td>Balance</td>
 <td class="amount" id="balanceDisplay"></td>
 </tr>
 </tfoot>
+
 </table>
 
 </div>
@@ -226,10 +240,8 @@ td.amount{text-align:right;white-space:nowrap;}
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
-let editMode=false;
-let currentInvoiceNo=null;
 
-/* ================= INIT ================= */
+/* ================= LOAD CUSTOMERS ================= */
 
 async function init(){
 
@@ -245,14 +257,12 @@ ${c.firm_name} - ${c.person_name}
 </option>`;
 });
 
-/* ===== CHECK EDIT MODE ===== */
+/* ===== EDIT MODE CHECK ===== */
 
 const params=new URLSearchParams(window.location.search);
 const invoiceNo=params.get("invoice");
 
 if(invoiceNo){
-editMode=true;
-currentInvoiceNo=invoiceNo;
 loadInvoice(invoiceNo);
 }
 
@@ -260,7 +270,7 @@ loadInvoice(invoiceNo);
 
 init();
 
-/* ================= LOAD INVOICE (EDIT) ================= */
+/* ================= PREFILL INVOICE ================= */
 
 async function loadInvoice(no){
 
@@ -301,7 +311,7 @@ generateInvoice();
 
 }
 
-/* ================= OTHER FUNCTIONS SAME AS BEFORE ================= */
+/* ================= AUTO FILL ================= */
 
 function loadCustomer(){
 const c=customers.find(x=>x.id==party.value);
@@ -313,6 +323,8 @@ auditFee.value=c.audit_fee;
 itrFee.value=c.itr_fee;
 }
 
+/* ================= MONTH CALC ================= */
+
 function monthDiff(a,b){
 const d1=new Date(a);
 const d2=new Date(b);
@@ -320,12 +332,16 @@ return (d2.getFullYear()-d1.getFullYear())*12+
 (d2.getMonth()-d1.getMonth())+1;
 }
 
+/* ================= PERIOD FORMAT ================= */
+
 function formatPeriod(f,t){
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const d1=new Date(f);
 const d2=new Date(t);
 return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
 }
+
+/* ================= GENERATE ================= */
 
 function generateInvoice(){
 
@@ -348,25 +364,25 @@ invGSTIN.innerText="GSTIN: "+gstin.value;
 invDate.innerText=new Date().toLocaleDateString();
 invPeriod.innerText=formatPeriod(from.value,to.value);
 
-let html="";
-if(gstTotal>0){
-html+=`
+billBody.innerHTML=`
 <tr>
 <td>GST Filing (${months} Months)</td>
 <td class="amount">₹${gstTotal}</td>
 </tr>`;
-}
-
-billBody.innerHTML=html;
 
 grandTotal.innerText="₹ "+total;
 paymentDisplay.innerText="₹ "+(+payment.value||0);
 balanceDisplay.innerText="₹ "+balance;
+
 }
 
+/* ================= SAVE ================= */
+
 async function saveInvoice(){
-alert("Edit Save API can be added next if you want.");
+alert("Update API can be added next.");
 }
+
+/* ================= JPG ================= */
 
 function shareJPG(){
 html2canvas(invoice).then(canvas=>{
