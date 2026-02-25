@@ -1,15 +1,11 @@
 <!DOCTYPE html>
-
 <html>
 <head>
 <title>Ledger Statement</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
-
-/* ===== BODY ===== */
 
 body{
 font-family:Segoe UI;
@@ -17,8 +13,6 @@ background:#eef2f7;
 padding:20px;
 margin:0;
 }
-
-/* ===== TOP BAR ===== */
 
 .top{
 display:flex;
@@ -41,8 +35,6 @@ border:none;
 cursor:pointer;
 }
 
-/* ===== A4 CARD ===== */
-
 .card{
 background:white;
 max-width:900px;
@@ -56,8 +48,6 @@ h2{
 text-align:center;
 margin-bottom:20px;
 }
-
-/* ===== TABLE ===== */
 
 table{
 width:100%;
@@ -78,8 +68,7 @@ text-align:center;
 }
 
 .amount{
-text-align:right;
-white-space:nowrap;
+text-align:center;  /* CENTERED */
 font-weight:500;
 }
 
@@ -90,47 +79,22 @@ text-decoration:underline;
 font-weight:600;
 }
 
-/* ===== MOBILE ===== */
-
-@media(max-width:600px){
-
-.card{
-padding:12px;
-}
-
-th,td{
-font-size:12px;
-padding:6px;
-}
-
-}
-
 </style>
-
 </head>
 
 <body>
 
-<!-- ===== TOP FILTER ===== -->
-
 <div class="top">
-
 <select id="firm"></select>
-
 <button onclick="loadLedger()">Search</button>
-
 <button onclick="shareJPG()">Share JPG</button>
-
 </div>
-
-<!-- ===== LEDGER BOX ===== -->
 
 <div id="ledgerBox" class="card">
 
 <h2>Ledger Statement</h2>
 
 <table>
-
 <thead>
 <tr>
 <th>Date</th>
@@ -141,9 +105,7 @@ padding:6px;
 <th>Balance</th>
 </tr>
 </thead>
-
 <tbody id="tb"></tbody>
-
 </table>
 
 </div>
@@ -152,87 +114,106 @@ padding:6px;
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 
-let customers=[];
+/* LOAD CUSTOMERS */
 
-/* ================= LOAD CUSTOMERS ================= */
-
-async function init(){
-
-const res = await fetch(API+"/api/customers");
-customers = await res.json();
-
+fetch(API+"/api/customers")
+.then(r=>r.json())
+.then(d=>{
 firm.innerHTML='<option value="">Select Party</option>';
-
-customers.forEach(c=>{
-
-firm.innerHTML += `
-<option value="${c.id}">
+d.forEach(c=>{
+firm.innerHTML+=
+`<option value="${c.id}">
 ${c.firm_name} - ${c.person_name}
 </option>`;
-
+});
 });
 
-}
-
-init();
-
-/* ================= DATE FORMAT ================= */
+/* FORMAT DATE */
 
 function formatDate(dt){
-
-if(!dt) return "";
-
 return new Date(dt).toLocaleDateString("en-GB");
+}
+
+/* FORMAT PERIOD → Jan-2026 to Apr-2027 */
+
+function formatPeriod(f,t){
+
+if(!f || !t) return "";
+
+const months=["Jan","Feb","Mar","Apr","May","Jun",
+"Jul","Aug","Sep","Oct","Nov","Dec"];
+
+let d1=new Date(f);
+let d2=new Date(t);
+
+return `${months[d1.getMonth()]}-${d1.getFullYear()} 
+to 
+${months[d2.getMonth()]}-${d2.getFullYear()}`;
 
 }
 
-/* ================= LOAD LEDGER ================= */
+/* FORMAT NUMBER */
+
+function formatNumber(n){
+return Number(n).toLocaleString("en-IN");
+}
+
+/* LOAD LEDGER */
 
 async function loadLedger(){
 
 const res = await fetch(API+"/api/ledger-dashboard");
 const data = await res.json();
 
-const filtered =
-data.filter(x=>x.customer_id==firm.value);
+const filtered = data.filter(x=>x.customer_id==firm.value);
 
-let bal = 0;
+let bal=0;
 tb.innerHTML="";
 
 filtered.forEach(d=>{
 
-let bill = Number(d.bill) || 0;
-let receipt = Number(d.receipt) || 0;
+let bill=Number(d.bill)||0;
+let receipt=Number(d.receipt)||0;
 
-/* RUNNING BALANCE */
+bal+=bill;
+bal-=receipt;
 
-bal += bill;
-bal -= receipt;
+let particular="";
 
-/* ROW */
+/* BILL ENTRY */
 
-tb.innerHTML += `
+if(d.invoice_no){
+particular=formatPeriod(d.period_from,d.period_to);
+}
+
+/* RECEIPT ENTRY */
+
+else{
+particular=d.particular || "Receipt";
+}
+
+tb.innerHTML+=`
 <tr>
-
 <td>${formatDate(d.date)}</td>
 
 <td class="link"
 onclick="openInvoice('${d.invoice_no}')">
-${d.invoice_no || ""}
+${d.invoice_no||""}
 </td>
 
-<td>${d.particular || ""}</td>
+<td>${particular}</td>
 
 <td class="amount">
-${bill ? "₹"+bill : ""}
+${bill?formatNumber(bill):""}
 </td>
 
 <td class="amount">
-${receipt ? "₹"+receipt : ""}
+${receipt?formatNumber(receipt):""}
 </td>
 
-<td class="amount">₹${bal}</td>
-
+<td class="amount">
+${formatNumber(bal)}
+</td>
 </tr>
 `;
 
@@ -240,7 +221,7 @@ ${receipt ? "₹"+receipt : ""}
 
 }
 
-/* ================= OPEN PREFILLED INVOICE ================= */
+/* OPEN INVOICE */
 
 function openInvoice(no){
 
@@ -251,27 +232,15 @@ window.location.href =
 
 }
 
-/* ================= SHARE JPG ================= */
+/* SHARE */
 
 function shareJPG(){
 
 html2canvas(ledgerBox).then(canvas=>{
-
 canvas.toBlob(blob=>{
-
-const file = new File(
-[blob],
-"Ledger.jpg",
-{type:"image/jpeg"}
-);
-
-navigator.share({
-files:[file],
-title:"Ledger Statement"
+const file=new File([blob],"Ledger.jpg",{type:"image/jpeg"});
+navigator.share({files:[file],title:"Ledger"});
 });
-
-});
-
 });
 
 }
