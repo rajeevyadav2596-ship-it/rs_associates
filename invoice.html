@@ -15,8 +15,6 @@ margin:0;
 padding:15px;
 }
 
-/* ===== FORM ===== */
-
 .card{
 background:white;
 padding:20px;
@@ -53,8 +51,6 @@ margin-top:12px;
 cursor:pointer;
 }
 
-/* ===== INVOICE ===== */
-
 .invoice{
 background:white;
 padding:20px;
@@ -63,16 +59,12 @@ max-width:900px;
 margin:auto;
 }
 
-/* HEADER */
-
 .header{
 display:flex;
 justify-content:space-between;
 }
 
-.right{
-text-align:right;
-}
+.right{text-align:right;}
 
 .invNo{
 color:red;
@@ -80,11 +72,7 @@ font-weight:bold;
 font-size:20px;
 }
 
-.date{
-font-weight:bold;
-}
-
-/* PARTY */
+.date{font-weight:bold;}
 
 .party{
 color:green;
@@ -99,17 +87,9 @@ font-weight:bold;
 margin-top:5px;
 }
 
-/* PERIOD */
+.periodBox{text-align:center;margin-top:20px;}
 
-.periodBox{
-text-align:center;
-margin-top:20px;
-}
-
-.periodTitle{
-font-weight:bold;
-color:red;
-}
+.periodTitle{font-weight:bold;color:red;}
 
 .period{
 background:#1f3c88;
@@ -120,8 +100,6 @@ border-radius:8px;
 font-weight:bold;
 margin-top:5px;
 }
-
-/* TABLE */
 
 table{
 width:100%;
@@ -150,10 +128,7 @@ text-align:right;
 white-space:nowrap;
 }
 
-.discount{
-color:red;
-font-weight:bold;
-}
+.discount{color:red;font-weight:bold;}
 
 .totalRow{
 font-weight:bold;
@@ -164,8 +139,6 @@ font-size:18px;
 </head>
 
 <body>
-
-<!-- ================= FORM ================= -->
 
 <div class="card">
 
@@ -218,8 +191,6 @@ font-size:18px;
 <button onclick="shareJPG()">Share JPG</button>
 
 </div>
-
-<!-- ================= INVOICE ================= -->
 
 <div id="invoice" class="invoice">
 
@@ -275,8 +246,9 @@ font-size:18px;
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
+let editInvoiceNo=null;
 
-/* ===== LOAD CUSTOMERS ===== */
+/* LOAD CUSTOMERS */
 
 async function init(){
 const res=await fetch(API+"/api/customers");
@@ -290,12 +262,59 @@ party.innerHTML+=`
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
+
+await loadInvoiceIfEdit();
 }
 
-/* ===== AUTO FILL ===== */
+/* LOAD EXISTING INVOICE */
+
+async function loadInvoiceIfEdit(){
+
+const params=new URLSearchParams(window.location.search);
+const no=params.get("no");
+if(!no) return;
+
+editInvoiceNo=no;
+
+const res=await fetch(API+"/api/invoice/"+no);
+const d=await res.json();
+if(!d || !d.invoice_no) return;
+
+party.value=d.customer_id;
+loadCustomer();
+
+person.value=d.person_name;
+gstin.value=d.gstin;
+
+from.value=d.period_from;
+to.value=d.period_to;
+
+auditFee.value=d.audit_total;
+itrFee.value=d.itr_total;
+
+other1Title.value=d.other1_name;
+other1Amt.value=d.other1_amount;
+
+other2Title.value=d.other2_name;
+other2Amt.value=d.other2_amount;
+
+other3Title.value=d.other3_name;
+other3Amt.value=d.other3_amount;
+
+discount.value=d.discount;
+payment.value=d.payment;
+
+invNo.innerText=d.invoice_no;
+
+generateInvoice();
+}
+
+/* AUTO FILL */
 
 function loadCustomer(){
 const c=customers.find(x=>x.id==party.value);
+if(!c) return;
+
 person.value=c.person_name;
 gstin.value=c.gstin;
 gstFee.value=c.gst_charges;
@@ -303,7 +322,7 @@ auditFee.value=c.audit_fee;
 itrFee.value=c.itr_fee;
 }
 
-/* ===== MONTH DIFF ===== */
+/* MONTH DIFF */
 
 function monthDiff(a,b){
 const d1=new Date(a);
@@ -312,7 +331,7 @@ return (d2.getFullYear()-d1.getFullYear())*12+
 (d2.getMonth()-d1.getMonth())+1;
 }
 
-/* ===== PERIOD FORMAT ===== */
+/* PERIOD FORMAT */
 
 function formatPeriod(f,t){
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -321,7 +340,7 @@ const d2=new Date(t);
 return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
 }
 
-/* ===== GENERATE ===== */
+/* GENERATE */
 
 function generateInvoice(){
 
@@ -339,7 +358,7 @@ gstTotal+
 
 let balance=total-(+payment.value||0);
 
-invParty.innerText=party.options[party.selectedIndex].text;
+invParty.innerText=party.options[party.selectedIndex]?.text || "";
 invGSTIN.innerText="GSTIN: "+gstin.value;
 invDate.innerText=new Date().toLocaleDateString();
 invPeriod.innerText=formatPeriod(from.value,to.value);
@@ -380,10 +399,9 @@ billBody.innerHTML=html;
 grandTotal.innerText="₹ "+total;
 paymentDisplay.innerText="₹ "+(+payment.value||0);
 balanceDisplay.innerText="₹ "+balance;
-
 }
 
-/* ===== SAVE ===== */
+/* SAVE */
 
 async function saveInvoice(){
 
@@ -405,6 +423,8 @@ const res=await fetch(API+"/api/add-invoice",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
+
+invoice_no:editInvoiceNo,
 
 customer_id:party.value,
 from:from.value,
@@ -430,13 +450,14 @@ final_total:total
 });
 
 const data=await res.json();
+
+editInvoiceNo=data.invoice_no;
 invNo.innerText=data.invoice_no;
 
-alert("Invoice Saved ✅");
-
+alert(editInvoiceNo ? "Invoice Updated ✅" : "Invoice Saved ✅");
 }
 
-/* ===== SHARE JPG ===== */
+/* SHARE JPG */
 
 function shareJPG(){
 html2canvas(invoice).then(canvas=>{
