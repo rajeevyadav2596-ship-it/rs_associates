@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 <head>
 <title>Ledger Statement</title>
@@ -105,6 +106,7 @@ padding:6px;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -180,23 +182,7 @@ function formatDate(dt){
 
 if(!dt) return "";
 
-const d=new Date(dt);
-return d.toLocaleDateString("en-GB");
-
-}
-
-/* ================= PERIOD FORMAT ================= */
-
-function formatPeriod(f,t){
-
-if(!f || !t) return "";
-
-const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-const d1=new Date(f);
-const d2=new Date(t);
-
-return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
+return new Date(dt).toLocaleDateString("en-GB");
 
 }
 
@@ -207,7 +193,8 @@ async function loadLedger(){
 const res = await fetch(API+"/api/ledger-dashboard");
 const data = await res.json();
 
-const filtered = data.filter(x=>x.customer_id==firm.value);
+const filtered =
+data.filter(x=>x.customer_id==firm.value);
 
 let bal = 0;
 tb.innerHTML="";
@@ -217,26 +204,10 @@ filtered.forEach(d=>{
 let bill = Number(d.bill) || 0;
 let receipt = Number(d.receipt) || 0;
 
+/* RUNNING BALANCE */
+
 bal += bill;
 bal -= receipt;
-
-let particular = "";
-
-/* BILL ENTRY */
-
-if(d.invoice_no){
-
-particular = formatPeriod(d.period_from,d.period_to);
-
-}
-
-/* RECEIPT ENTRY */
-
-else{
-
-particular = d.entry_type || "Receipt";
-
-}
 
 /* ROW */
 
@@ -250,11 +221,15 @@ onclick="openInvoice('${d.invoice_no}')">
 ${d.invoice_no || ""}
 </td>
 
-<td>${particular}</td>
+<td>${d.particular || ""}</td>
 
-<td class="amount">${bill ? "₹"+bill : ""}</td>
+<td class="amount">
+${bill ? "₹"+bill : ""}
+</td>
 
-<td class="amount">${receipt ? "₹"+receipt : ""}</td>
+<td class="amount">
+${receipt ? "₹"+receipt : ""}
+</td>
 
 <td class="amount">₹${bal}</td>
 
