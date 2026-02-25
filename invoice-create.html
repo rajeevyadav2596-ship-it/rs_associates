@@ -48,7 +48,7 @@ cursor:pointer;
 margin-top:8px;
 }
 
-/* INVOICE DESIGN */
+/* ===== INVOICE DESIGN ===== */
 
 .invoiceBox{
 background:white;
@@ -111,20 +111,25 @@ font-size:18px;
 <input id="gstFee" placeholder="GST Charges / Month">
 <input id="auditFee" placeholder="Audit Fee">
 <input id="itrFee" placeholder="ITR Fee">
-<input id="otherTitle" placeholder="Other Title">
-<input id="otherAmt" placeholder="Other Amount">
+
+<input id="other1Title" placeholder="Other Title 1">
+<input id="other1Amt" placeholder="Other Amount 1">
+
+<input id="discount" placeholder="Discount">
+<input id="payment" placeholder="Payment">
 
 <button onclick="generateInvoice()">Generate Invoice</button>
 <button onclick="saveInvoice()">Save Invoice</button>
-<button onclick="downloadJPG()">Open JPG</button>
+<button onclick="downloadJPG()">Share JPG</button>
 
 </div>
 
-<!-- INVOICE PREVIEW -->
+<!-- ===== INVOICE PREVIEW ===== -->
 
 <div id="invoice" class="invoiceBox">
 
 <div class="invHeader">
+
 <div>
 <h3>RS Associates</h3>
 <div id="invParty"></div>
@@ -135,15 +140,29 @@ font-size:18px;
 <div class="invNo" id="invNo">RS-000</div>
 <div id="invPeriod"></div>
 </div>
+
 </div>
 
 <table>
 <tbody id="billBody"></tbody>
+
 <tfoot>
+
 <tr class="total">
 <td>Total</td>
 <td id="grandTotal"></td>
 </tr>
+
+<tr>
+<td>Payment</td>
+<td id="paymentShow"></td>
+</tr>
+
+<tr>
+<td>Balance</td>
+<td id="balanceShow"></td>
+</tr>
+
 </tfoot>
 </table>
 
@@ -154,10 +173,10 @@ font-size:18px;
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
-
 let customers=[];
 
-/* LOAD CUSTOMERS */
+/* ================= LOAD CUSTOMERS ================= */
+
 async function init(){
 
 const res=await fetch(API+"/api/customers");
@@ -172,7 +191,20 @@ ${c.firm_name} - ${c.person_name}
 </option>`;
 });
 
+/* PREFILL IF OPENED FROM LEDGER */
+
+const urlParams = new URLSearchParams(window.location.search);
+const invoiceNo = urlParams.get("invoice");
+
+if(invoiceNo){
+loadInvoice(invoiceNo);
 }
+
+}
+
+init();
+
+/* ================= LOAD CUSTOMER ================= */
 
 function loadCustomer(){
 
@@ -183,12 +215,33 @@ gstin.value=c.gstin;
 gstFee.value=c.gst_charges;
 auditFee.value=c.audit_fee;
 itrFee.value=c.itr_fee;
-otherTitle.value=c.other_fee_name;
-otherAmt.value=c.other_fee_amount;
 
 }
 
-/* MONTH CALC */
+/* ================= LOAD EXISTING INVOICE ================= */
+
+async function loadInvoice(no){
+
+const res=await fetch(API+"/api/invoice/"+no);
+const d=await res.json();
+
+party.value=d.customer_id;
+person.value=d.person_name;
+gstin.value=d.gstin;
+from.value=d.period_from;
+to.value=d.period_to;
+gstFee.value=d.gst_total/d.months;
+auditFee.value=d.audit_total;
+itrFee.value=d.itr_total;
+
+generateInvoice();
+
+invNo.innerText=d.invoice_no;
+
+}
+
+/* ================= MONTH DIFF ================= */
+
 function monthDiff(a,b){
 
 const d1=new Date(a);
@@ -199,35 +252,58 @@ return (d2.getFullYear()-d1.getFullYear())*12 +
 
 }
 
-/* GENERATE PREVIEW */
+/* ================= FORMAT PERIOD ================= */
+
+function formatPeriod(f,t){
+
+const m=["Jan","Feb","Mar","Apr","May","Jun",
+"Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const d1=new Date(f);
+const d2=new Date(t);
+
+return `${m[d1.getMonth()]}-${d1.getFullYear()} 
+to 
+${m[d2.getMonth()]}-${d2.getFullYear()}`;
+
+}
+
+/* ================= GENERATE ================= */
+
 function generateInvoice(){
 
 const months=monthDiff(from.value,to.value);
-
 const gstTotal=months*gstFee.value;
 
-const total=
+let total=
 +gstTotal+
-+auditFee.value+
-+itrFee.value+
-+otherAmt.value;
++ +auditFee.value+
++ +itrFee.value+
++ +other1Amt.value-
++ +discount.value;
+
+let balance=total-(+payment.value||0);
 
 invParty.innerText=party.options[party.selectedIndex].text;
 invGSTIN.innerText="GSTIN: "+gstin.value;
-invPeriod.innerText=from.value+" → "+to.value;
+invPeriod.innerText=formatPeriod(from.value,to.value);
 
 billBody.innerHTML=`
 <tr><td>GST Filing (${months} Months)</td><td>₹${gstTotal}</td></tr>
 <tr><td>Audit</td><td>₹${auditFee.value}</td></tr>
 <tr><td>ITR</td><td>₹${itrFee.value}</td></tr>
-<tr><td>${otherTitle.value}</td><td>₹${otherAmt.value}</td></tr>
+<tr><td>${other1Title.value}</td><td>₹${other1Amt.value}</td></tr>
+<tr><td style="color:red;">Discount</td><td style="color:red;">-₹${discount.value}</td></tr>
 `;
 
 grandTotal.innerText="₹ "+total;
+paymentShow.innerText="₹ "+(+payment.value||0);
+balanceShow.innerText="₹ "+balance;
 
 }
 
-/* SAVE */
+/* ================= SAVE ================= */
+
 async function saveInvoice(){
 
 const months=monthDiff(from.value,to.value);
@@ -235,25 +311,32 @@ const gstTotal=months*gstFee.value;
 
 const total=
 +gstTotal+
-+auditFee.value+
-+itrFee.value+
-+otherAmt.value;
++ +auditFee.value+
++ +itrFee.value+
++ +other1Amt.value-
++ +discount.value;
 
 const res=await fetch(API+"/api/add-invoice",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
+
 customer_id:party.value,
 from:from.value,
 to:to.value,
 months,
-gst_rate:gstFee.value,
 gst_total:gstTotal,
 audit_total:auditFee.value,
 itr_total:itrFee.value,
-other_name:otherTitle.value,
-other_amount:otherAmt.value,
+
+other1_name:other1Title.value,
+other1_amount:other1Amt.value,
+
+discount:discount.value,
+payment:payment.value,
+
 final_total:total
+
 })
 });
 
@@ -264,21 +347,17 @@ alert("Invoice Saved");
 
 }
 
-/* JPG */
+/* ================= JPG ================= */
+
 function downloadJPG(){
 
 html2canvas(document.getElementById("invoice"))
 .then(canvas=>{
-const link=document.createElement("a");
-link.href=canvas.toDataURL();
-link.download="Invoice.jpg";
-link.click();
-window.open(link.href);
+const file=canvas.toDataURL();
+window.open(file);
 });
 
 }
-
-init();
 
 </script>
 
