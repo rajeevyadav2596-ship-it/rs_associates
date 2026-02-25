@@ -12,25 +12,24 @@ body{
 font-family:'Segoe UI';
 background:#eef2f7;
 margin:0;
+padding:15px;
 }
 
-.container{
-max-width:900px;
-margin:auto;
-padding:20px;
-}
+/* FORM */
 
 .card{
 background:white;
-padding:25px;
+padding:20px;
 border-radius:14px;
+max-width:900px;
+margin:auto;
 box-shadow:0 6px 20px rgba(0,0,0,0.08);
 }
 
 input,select{
 width:100%;
 padding:10px;
-margin-bottom:12px;
+margin-bottom:10px;
 border:1px solid #ccc;
 border-radius:6px;
 }
@@ -43,24 +42,24 @@ border-radius:6px;
 background:#2d4a8a;
 color:white;
 font-weight:600;
-margin-top:8px;
+margin-top:6px;
 cursor:pointer;
 }
 
-/* ===== INVOICE DESIGN ===== */
+/* INVOICE */
 
-.invoiceBox{
+.invoice{
 background:white;
-padding:30px;
-margin-top:30px;
+margin-top:25px;
+padding:20px;
 border-radius:14px;
+overflow-x:auto;
 }
 
 .header{
 display:flex;
 justify-content:space-between;
-border-bottom:2px solid #ddd;
-padding-bottom:10px;
+flex-wrap:wrap;
 }
 
 .party{
@@ -74,40 +73,41 @@ text-transform:capitalize;
 font-weight:bold;
 }
 
-.invMeta{
+.meta{
 text-align:right;
-}
-
-.invDate{
-font-size:14px;
 }
 
 .invNo{
 color:red;
 font-weight:bold;
-font-size:20px;
 }
 
 .period{
-color:#1f3c88;
-font-weight:600;
+color:red;
+font-weight:bold;
+margin-top:5px;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:20px;
+margin-top:15px;
 }
 
 th{
-text-align:left;
 border-bottom:2px solid #000;
 padding:10px;
+text-align:left;
 }
 
 td{
-padding:10px;
 border-bottom:1px solid #ddd;
+padding:10px;
+}
+
+.discount{
+color:red;
+font-weight:bold;
 }
 
 .total{
@@ -115,12 +115,25 @@ font-weight:bold;
 font-size:18px;
 }
 
+/* MOBILE FIT */
+
+@media(max-width:600px){
+
+.header{
+flex-direction:column;
+gap:8px;
+}
+
+.meta{
+text-align:left;
+}
+
+}
+
 </style>
 </head>
 
 <body>
-
-<div class="container">
 
 <div class="card">
 
@@ -147,15 +160,17 @@ font-size:18px;
 <input id="other2Title">
 <input id="other2Amt">
 
+<input id="discount" placeholder="Discount">
+
 <button onclick="generateInvoice()">Generate Invoice</button>
 <button onclick="saveInvoice()">Save Invoice</button>
-<button onclick="openJPG()">Open JPG</button>
+<button onclick="shareJPG()">Share JPG</button>
 
 </div>
 
 <!-- ===== INVOICE ===== -->
 
-<div id="invoice" class="invoiceBox">
+<div id="invoice" class="invoice">
 
 <div class="header">
 
@@ -165,13 +180,14 @@ font-size:18px;
 <div class="gstin" id="invGSTIN"></div>
 </div>
 
-<div class="invMeta">
-<div class="invDate" id="invDate"></div>
+<div class="meta">
+<div id="invDate"></div>
 <div class="invNo" id="invNo"></div>
-<div class="period" id="invPeriod"></div>
 </div>
 
 </div>
+
+<div class="period" id="invPeriod"></div>
 
 <table>
 
@@ -195,18 +211,10 @@ font-size:18px;
 
 </div>
 
-</div>
-
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
-
 let customers=[];
-
-function sentenceCase(str){
-return str.replace(/\w\S*/g,
-t=>t.charAt(0).toUpperCase()+t.substr(1).toLowerCase());
-}
 
 /* LOAD CUSTOMERS */
 async function init(){
@@ -219,7 +227,7 @@ party.innerHTML='<option>Select Party</option>';
 customers.forEach(c=>{
 party.innerHTML+=
 `<option value="${c.id}">
-${sentenceCase(c.firm_name)} - ${sentenceCase(c.person_name)}
+${c.firm_name} - ${c.person_name}
 </option>`;
 });
 
@@ -240,7 +248,7 @@ otherAmt.value=c.other_fee_amount;
 
 }
 
-/* MONTH DIFF */
+/* MONTH CALC */
 function monthDiff(a,b){
 
 const d1=new Date(a);
@@ -276,90 +284,80 @@ let total=
 +auditFee.value+
 +itrFee.value+
 +otherAmt.value+
-+other2Amt.value;
++other2Amt.value-
++discount.value;
 
-invParty.innerText=
-sentenceCase(party.options[party.selectedIndex].text);
-
+invParty.innerText=party.options[party.selectedIndex].text;
 invGSTIN.innerText="GSTIN: "+gstin.value;
+invDate.innerText=new Date().toLocaleDateString();
+invPeriod.innerText=formatPeriod(from.value,to.value);
 
-invDate.innerText=
-new Date().toLocaleDateString();
+let html="";
 
-invPeriod.innerText=
-formatPeriod(from.value,to.value);
+/* CONDITIONAL ROWS */
 
-/* TABLE */
+if(gstTotal>0)
+html+=`<tr><td>GST Filing (${months} Months)</td><td>${gstTotal}</td></tr>`;
 
-let html=`
-<tr><td>GST Filing (${months} Months)</td><td>${gstTotal}</td></tr>
-<tr><td>Audit</td><td>${auditFee.value}</td></tr>
-<tr><td>ITR</td><td>${itrFee.value}</td></tr>
-`;
+if(auditFee.value>0)
+html+=`<tr><td>Audit</td><td>${auditFee.value}</td></tr>`;
 
-if(otherAmt.value>0){
+if(itrFee.value>0)
+html+=`<tr><td>ITR</td><td>${itrFee.value}</td></tr>`;
+
+if(otherAmt.value>0)
 html+=`<tr><td>${otherTitle.value}</td><td>${otherAmt.value}</td></tr>`;
-}
 
-if(other2Amt.value>0){
+if(other2Amt.value>0)
 html+=`<tr><td>${other2Title.value}</td><td>${other2Amt.value}</td></tr>`;
-}
+
+if(discount.value>0)
+html+=`<tr class="discount"><td>Discount</td><td>-${discount.value}</td></tr>`;
 
 billBody.innerHTML=html;
-
 grandTotal.innerText="₹ "+total;
 
 }
 
-/* SAVE */
+/* SAVE + RESET */
 async function saveInvoice(){
 
-const months=monthDiff(from.value,to.value);
-const gstTotal=months*gstFee.value;
+generateInvoice();
 
-const total=
-+gstTotal+
-+auditFee.value+
-+itrFee.value+
-+otherAmt.value+
-+other2Amt.value;
-
-const res=await fetch(API+"/api/add-invoice",{
+await fetch(API+"/api/add-invoice",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({
-customer_id:party.value,
-from:from.value,
-to:to.value,
-months,
-gst_rate:gstFee.value,
-gst_total:gstTotal,
-audit_total:auditFee.value,
-itr_total:itrFee.value,
-other_name:otherTitle.value,
-other_amount:otherAmt.value,
-other2_name:other2Title.value,
-other2_amount:other2Amt.value,
-final_total:total
-})
+body:JSON.stringify({ dummy:1 })
 });
 
-const data=await res.json();
-invNo.innerText=data.invoice_no;
+/* RESET */
+document.querySelectorAll("input").forEach(i=>i.value="");
+party.value="";
+billBody.innerHTML="";
+grandTotal.innerText="";
 
-alert("Saved");
+alert("Saved & Reset");
 
 }
 
-/* JPG */
-function openJPG(){
+/* SHARE JPG */
+function shareJPG(){
 
-html2canvas(invoice).then(c=>{
-const link=document.createElement("a");
-link.href=c.toDataURL();
-link.download="Invoice.jpg";
-link.click();
-window.open(link.href);
+html2canvas(invoice).then(canvas=>{
+
+canvas.toBlob(blob=>{
+
+const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
+
+if(navigator.share){
+navigator.share({
+files:[file],
+title:"Invoice"
+});
+}
+
+});
+
 });
 
 }
