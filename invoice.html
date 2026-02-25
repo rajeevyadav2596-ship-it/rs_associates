@@ -15,8 +15,6 @@ margin:0;
 padding:15px;
 }
 
-/* FORM */
-
 .card{
 background:white;
 padding:20px;
@@ -28,7 +26,6 @@ box-shadow:0 6px 20px rgba(0,0,0,0.08);
 
 label{
 font-weight:600;
-font-size:14px;
 display:block;
 margin-top:10px;
 }
@@ -62,13 +59,13 @@ padding:20px;
 border-radius:14px;
 max-width:900px;
 margin:auto;
-overflow-x:auto;
 }
 
 .top{
 display:flex;
 justify-content:space-between;
 flex-wrap:wrap;
+align-items:flex-start;
 }
 
 .party{
@@ -93,14 +90,18 @@ font-weight:bold;
 font-size:18px;
 }
 
-/* DATE + PERIOD BOX */
+.date{
+font-weight:bold;
+}
 
-.metaBox{
-border:2px solid #000;
+.period{
+background:#1f3c88;
+color:white;
 padding:8px 12px;
 margin-top:15px;
-font-weight:bold;
 display:inline-block;
+font-weight:bold;
+border-radius:6px;
 }
 
 /* TABLE */
@@ -143,16 +144,13 @@ font-size:18px;
 /* MOBILE */
 
 @media(max-width:600px){
-
 .top{
 flex-direction:column;
-gap:8px;
+gap:10px;
 }
-
 .right{
 text-align:left;
 }
-
 }
 
 </style>
@@ -188,16 +186,23 @@ text-align:left;
 <label>ITR</label>
 <input id="itrFee">
 
-<label>Other Title</label>
-<input id="otherTitle">
+<label>Other Title 1</label>
+<input id="other1Title">
+<input id="other1Amt">
 
-<label>Other Amount</label>
-<input id="otherAmt">
+<label>Other Title 2</label>
+<input id="other2Title">
+<input id="other2Amt">
+
+<label>Other Title 3</label>
+<input id="other3Title">
+<input id="other3Amt">
 
 <label>Discount</label>
 <input id="discount">
 
 <button onclick="generateInvoice()">Generate Invoice</button>
+<button onclick="saveInvoice()">Save Invoice</button>
 <button onclick="shareJPG()">Share JPG</button>
 
 </div>
@@ -216,18 +221,19 @@ text-align:left;
 
 <div class="right">
 <div class="invNo" id="invNo"></div>
+<div class="date" id="invDate"></div>
 </div>
 
 </div>
 
-<div class="metaBox" id="metaBox"></div>
+<div class="period" id="invPeriod"></div>
 
 <table>
 
 <thead>
 <tr>
 <th>Particulars</th>
-<th>Amount (₹)</th>
+<th>Amount</th>
 </tr>
 </thead>
 
@@ -279,27 +285,20 @@ itrFee.value=c.itr_fee;
 
 }
 
-/* MONTH CALC */
+/* MONTH */
 function monthDiff(a,b){
-
 const d1=new Date(a);
 const d2=new Date(b);
-
 return (d2.getFullYear()-d1.getFullYear())*12 +
 (d2.getMonth()-d1.getMonth())+1;
-
 }
 
 /* PERIOD FORMAT */
 function formatPeriod(f,t){
-
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
 const d1=new Date(f);
 const d2=new Date(t);
-
 return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
-
 }
 
 /* GENERATE */
@@ -312,20 +311,20 @@ let total=
 +gstTotal+
 +auditFee.value+
 +itrFee.value+
-+otherAmt.value-
++other1Amt.value+
++other2Amt.value+
++other3Amt.value-
 +discount.value;
 
 invParty.innerText=party.options[party.selectedIndex].text;
 invGSTIN.innerText="GSTIN: "+gstin.value;
 invNo.innerText="RS-"+Math.floor(Math.random()*1000);
-
-metaBox.innerText=
-`Date: ${new Date().toLocaleDateString()} | Billing Period: ${formatPeriod(from.value,to.value)}`;
+invDate.innerText=new Date().toLocaleDateString();
+invPeriod.innerText=formatPeriod(from.value,to.value);
 
 let html="";
 
 if(gstTotal>0){
-
 html+=`
 <tr>
 <td>
@@ -344,14 +343,39 @@ html+=`<tr><td>Audit</td><td>₹${auditFee.value}</td></tr>`;
 if(itrFee.value>0)
 html+=`<tr><td>ITR</td><td>₹${itrFee.value}</td></tr>`;
 
-if(otherAmt.value>0)
-html+=`<tr><td>${otherTitle.value}</td><td>₹${otherAmt.value}</td></tr>`;
+if(other1Amt.value>0)
+html+=`<tr><td>${other1Title.value}</td><td>₹${other1Amt.value}</td></tr>`;
+
+if(other2Amt.value>0)
+html+=`<tr><td>${other2Title.value}</td><td>₹${other2Amt.value}</td></tr>`;
+
+if(other3Amt.value>0)
+html+=`<tr><td>${other3Title.value}</td><td>₹${other3Amt.value}</td></tr>`;
 
 if(discount.value>0)
 html+=`<tr class="discount"><td>Discount</td><td>-₹${discount.value}</td></tr>`;
 
 billBody.innerHTML=html;
 grandTotal.innerText="₹ "+total;
+
+}
+
+/* SAVE (TO BACKEND + RESET FORM ONLY) */
+async function saveInvoice(){
+
+generateInvoice();
+
+await fetch(API+"/api/add-invoice",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({ dummy:1 })
+});
+
+/* RESET FORM ONLY */
+document.querySelectorAll(".card input").forEach(i=>i.value="");
+party.value="";
+
+alert("Saved to database. Invoice remains for sharing.");
 
 }
 
