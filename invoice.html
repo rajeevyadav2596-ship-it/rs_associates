@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Sale Invoice</title>
+<title>Ledger Statement</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -11,114 +11,45 @@
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-margin:0;
-padding:15px;
-}
-
-/* ===== FORM ===== */
-
-.card{
-background:white;
 padding:20px;
-border-radius:14px;
-max-width:900px;
-margin:auto;
-box-shadow:0 6px 20px rgba(0,0,0,0.08);
-margin-bottom:25px;
 }
 
-label{
-font-weight:600;
-display:block;
-margin-top:12px;
+/* TOP BAR */
+
+.top{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin-bottom:20px;
 }
 
-input,select{
-width:100%;
+select,button{
 padding:10px;
-margin-top:5px;
-border:1px solid #ccc;
 border-radius:6px;
+border:1px solid #ccc;
 }
 
 button{
-width:100%;
-padding:12px;
-border:none;
-border-radius:6px;
 background:#2d4a8a;
 color:white;
-font-weight:600;
-margin-top:12px;
+border:none;
 cursor:pointer;
 }
 
-/* ===== INVOICE ===== */
+/* A4 CARD */
 
-.invoice{
+.card{
 background:white;
-padding:20px;
-border-radius:14px;
 max-width:900px;
 margin:auto;
+padding:20px;
+border-radius:12px;
+box-shadow:0 4px 12px rgba(0,0,0,.08);
 }
 
-/* HEADER */
-
-.header{
-display:flex;
-justify-content:space-between;
-}
-
-.right{
-text-align:right;
-}
-
-.invNo{
-color:red;
-font-weight:bold;
-font-size:20px;
-}
-
-.date{
-font-weight:bold;
-}
-
-/* PARTY */
-
-.party{
-color:green;
-font-weight:bold;
-font-size:20px;
-margin-top:10px;
-text-transform:capitalize;
-}
-
-.gstin{
-font-weight:bold;
-margin-top:5px;
-}
-
-/* PERIOD */
-
-.periodBox{
+h2{
 text-align:center;
-margin-top:20px;
-}
-
-.periodTitle{
-font-weight:bold;
-color:red;
-}
-
-.period{
-background:#1f3c88;
-color:white;
-display:inline-block;
-padding:10px 20px;
-border-radius:8px;
-font-weight:bold;
-margin-top:5px;
+margin-bottom:20px;
 }
 
 /* TABLE */
@@ -126,38 +57,45 @@ margin-top:5px;
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:25px;
 }
 
 th{
-border-bottom:2px solid black;
+background:#2d4a8a;
+color:white;
 padding:10px;
-text-align:left;
-}
-
-th.amount{
-text-align:right;
-width:35%;
+text-align:center;
 }
 
 td{
-border-bottom:1px solid #ddd;
 padding:10px;
+border-bottom:1px solid #ddd;
+text-align:center;
 }
 
-td.amount{
+.amount{
 text-align:right;
 white-space:nowrap;
 }
 
-.discount{
-color:red;
-font-weight:bold;
+.link{
+color:#2d4a8a;
+cursor:pointer;
+text-decoration:underline;
 }
 
-.totalRow{
-font-weight:bold;
-font-size:18px;
+/* MOBILE */
+
+@media(max-width:600px){
+
+.card{
+padding:10px;
+}
+
+th,td{
+font-size:12px;
+padding:6px;
+}
+
 }
 
 </style>
@@ -165,107 +103,34 @@ font-size:18px;
 
 <body>
 
-<!-- ================= FORM ================= -->
+<div class="top">
 
-<div class="card">
+<select id="firm"></select>
 
-<h2>Create Sale Invoice</h2>
+<button onclick="loadLedger()">Search</button>
 
-<label>Select Party</label>
-<select id="party" onchange="loadCustomer()"></select>
-
-<label>Person Name</label>
-<input id="person">
-
-<label>GSTIN</label>
-<input id="gstin">
-
-<label>From</label>
-<input type="month" id="from">
-
-<label>To</label>
-<input type="month" id="to">
-
-<label>GST Charges / Month</label>
-<input id="gstFee">
-
-<label>Audit</label>
-<input id="auditFee">
-
-<label>ITR</label>
-<input id="itrFee">
-
-<label>Other Title 1</label>
-<input id="other1Title">
-<input id="other1Amt">
-
-<label>Other Title 2</label>
-<input id="other2Title">
-<input id="other2Amt">
-
-<label>Other Title 3</label>
-<input id="other3Title">
-<input id="other3Amt">
-
-<label>Discount</label>
-<input id="discount">
-
-<label>Payment</label>
-<input id="payment">
-
-<button onclick="generateInvoice()">Generate Invoice</button>
-<button onclick="saveInvoice()">Save Invoice</button>
 <button onclick="shareJPG()">Share JPG</button>
 
 </div>
 
-<!-- ================= INVOICE ================= -->
+<div id="ledgerBox" class="card">
 
-<div id="invoice" class="invoice">
-
-<div class="header">
-<div><h2>RS Associates</h2></div>
-
-<div class="right">
-<div class="invNo" id="invNo"></div>
-<div class="date" id="invDate"></div>
-</div>
-</div>
-
-<div class="party" id="invParty"></div>
-<div class="gstin" id="invGSTIN"></div>
-
-<div class="periodBox">
-<div class="periodTitle">Billing Period</div>
-<div class="period" id="invPeriod"></div>
-</div>
+<h2>Ledger Statement</h2>
 
 <table>
+
 <thead>
 <tr>
-<th>Particulars</th>
-<th class="amount">Amount</th>
+<th>Date</th>
+<th>Invoice</th>
+<th>Particular</th>
+<th>Bill</th>
+<th>Receipt</th>
+<th>Balance</th>
 </tr>
 </thead>
 
-<tbody id="billBody"></tbody>
-
-<tfoot>
-<tr class="totalRow">
-<td>Total</td>
-<td class="amount" id="grandTotal"></td>
-</tr>
-
-<tr>
-<td>Payment</td>
-<td class="amount" id="paymentDisplay"></td>
-</tr>
-
-<tr class="totalRow">
-<td>Balance</td>
-<td class="amount" id="balanceDisplay"></td>
-</tr>
-</tfoot>
+<tbody id="tb"></tbody>
 
 </table>
 
@@ -274,180 +139,150 @@ font-size:18px;
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
+
 let customers=[];
 
-/* ===== LOAD CUSTOMERS ===== */
+/* LOAD CUSTOMERS */
 
-async function init(){
-const res=await fetch(API+"/api/customers");
-customers=await res.json();
-
-party.innerHTML='<option value="">Select Party</option>';
-
-customers.forEach(c=>{
-party.innerHTML+=`
-<option value="${c.id}">
+fetch(API+"/api/customers")
+.then(r=>r.json())
+.then(d=>{
+customers=d;
+d.forEach(c=>{
+firm.innerHTML+=
+`<option value="${c.id}">
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
+});
+
+/* DATE FORMAT */
+
+function formatDate(d){
+return new Date(d).toLocaleDateString("en-GB");
 }
 
-/* ===== AUTO FILL ===== */
-
-function loadCustomer(){
-const c=customers.find(x=>x.id==party.value);
-person.value=c.person_name;
-gstin.value=c.gstin;
-gstFee.value=c.gst_charges;
-auditFee.value=c.audit_fee;
-itrFee.value=c.itr_fee;
-}
-
-/* ===== MONTH DIFF ===== */
-
-function monthDiff(a,b){
-const d1=new Date(a);
-const d2=new Date(b);
-return (d2.getFullYear()-d1.getFullYear())*12+
-(d2.getMonth()-d1.getMonth())+1;
-}
-
-/* ===== PERIOD FORMAT ===== */
+/* PERIOD FORMAT */
 
 function formatPeriod(f,t){
+
+if(!f) return "";
+
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 const d1=new Date(f);
 const d2=new Date(t);
-return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
+
+return `${m[d1.getMonth()]} ${d1.getFullYear()} 
+to 
+${m[d2.getMonth()]} ${d2.getFullYear()}`;
+
 }
 
-/* ===== GENERATE ===== */
+/* LOAD LEDGER */
 
-function generateInvoice(){
+async function loadLedger(){
 
-const months=monthDiff(from.value,to.value);
-const gstTotal=months*(+gstFee.value||0);
+const res=await fetch(API+"/api/ledger-dashboard");
+const data=await res.json();
 
-let total=
-gstTotal+
-(+auditFee.value||0)+
-(+itrFee.value||0)+
-(+other1Amt.value||0)+
-(+other2Amt.value||0)+
-(+other3Amt.value||0)-
-(+discount.value||0);
+const f=data.filter(x=>x.customer_id==firm.value);
 
-let balance=total-(+payment.value||0);
+let bal=0;
+tb.innerHTML="";
 
-invParty.innerText=party.options[party.selectedIndex].text;
-invGSTIN.innerText="GSTIN: "+gstin.value;
-invDate.innerText=new Date().toLocaleDateString();
-invPeriod.innerText=formatPeriod(from.value,to.value);
+f.forEach(d=>{
 
-let html="";
+let bill="",receipt="",particular="";
 
-if(gstTotal>0){
-html+=`
+/* BILL */
+
+if(d.type=="Bill"){
+
+particular=formatPeriod(d.period_from,d.period_to);
+
+bill="₹"+d.bill_amount;
+bal+=d.bill_amount;
+
+if(d.receipt_amount){
+receipt="₹"+d.receipt_amount;
+bal-=d.receipt_amount;
+}
+
+}
+
+/* RECEIPT */
+
+else{
+
+particular=d.type;
+receipt="₹"+d.receipt_amount;
+bal-=d.receipt_amount;
+
+}
+
+/* ROW */
+
+tb.innerHTML+=`
 <tr>
-<td>
-GST Filing (${months} Months)
-<br><b>GST Fees — ₹${gstFee.value} / Month</b>
+
+<td>${formatDate(d.date)}</td>
+
+<td class="link"
+onclick="openInvoice('${d.invoice_no}')">
+${d.invoice_no||""}
 </td>
-<td class="amount">₹${gstTotal}</td>
-</tr>`;
-}
 
-if(auditFee.value>0)
-html+=`<tr><td>Audit</td><td class="amount">₹${auditFee.value}</td></tr>`;
+<td>${particular}</td>
 
-if(itrFee.value>0)
-html+=`<tr><td>ITR</td><td class="amount">₹${itrFee.value}</td></tr>`;
+<td class="amount">${bill}</td>
 
-if(other1Amt.value>0)
-html+=`<tr><td>${other1Title.value}</td><td class="amount">₹${other1Amt.value}</td></tr>`;
+<td class="amount">${receipt}</td>
 
-if(other2Amt.value>0)
-html+=`<tr><td>${other2Title.value}</td><td class="amount">₹${other2Amt.value}</td></tr>`;
+<td class="amount">₹${bal}</td>
 
-if(other3Amt.value>0)
-html+=`<tr><td>${other3Title.value}</td><td class="amount">₹${other3Amt.value}</td></tr>`;
+</tr>
+`;
 
-if(discount.value>0)
-html+=`<tr class="discount"><td>Discount</td><td class="amount">-₹${discount.value}</td></tr>`;
-
-billBody.innerHTML=html;
-
-grandTotal.innerText="₹ "+total;
-paymentDisplay.innerText="₹ "+(+payment.value||0);
-balanceDisplay.innerText="₹ "+balance;
-
-}
-
-/* ===== SAVE ===== */
-
-async function saveInvoice(){
-
-generateInvoice();
-
-const months=monthDiff(from.value,to.value);
-const gstTotal=months*(+gstFee.value||0);
-
-let total=
-gstTotal+
-(+auditFee.value||0)+
-(+itrFee.value||0)+
-(+other1Amt.value||0)+
-(+other2Amt.value||0)+
-(+other3Amt.value||0)-
-(+discount.value||0);
-
-const res=await fetch(API+"/api/add-invoice",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({
-
-customer_id:party.value,
-from:from.value,
-to:to.value,
-months:months,
-
-gst_total:gstTotal,
-audit_total:+auditFee.value||0,
-itr_total:+itrFee.value||0,
-
-other1_name:other1Title.value,
-other1_amount:+other1Amt.value||0,
-other2_name:other2Title.value,
-other2_amount:+other2Amt.value||0,
-other3_name:other3Title.value,
-other3_amount:+other3Amt.value||0,
-
-discount:+discount.value||0,
-payment:+payment.value||0,
-final_total:total
-
-})
 });
 
-const data=await res.json();
-invNo.innerText=data.invoice_no;
+}
 
-alert("Invoice Saved ✅");
+/* OPEN INVOICE EDIT */
+
+function openInvoice(no){
+
+if(!no) return;
+
+window.location.href=
+"invoice-create.html?invoice="+no;
 
 }
 
-/* ===== SHARE JPG ===== */
+/* SHARE JPG */
 
 function shareJPG(){
-html2canvas(invoice).then(canvas=>{
-canvas.toBlob(blob=>{
-const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
-navigator.share({ files:[file], title:"Invoice" });
-});
-});
-}
 
-init();
+html2canvas(ledgerBox).then(canvas=>{
+
+canvas.toBlob(blob=>{
+
+const file=new File(
+[blob],
+"Ledger.jpg",
+{type:"image/jpeg"}
+);
+
+navigator.share({
+files:[file],
+title:"Ledger Statement"
+});
+
+});
+
+});
+
+}
 
 </script>
 
