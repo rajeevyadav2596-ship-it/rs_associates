@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ledger</title>
+<title>Ledger Statement</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -14,45 +14,42 @@ background:#eef2f7;
 padding:20px;
 }
 
-/* TOP */
+/* TOP BAR */
 
-.topbar{
-margin-bottom:15px;
+.top{
 display:flex;
 gap:10px;
 flex-wrap:wrap;
+margin-bottom:20px;
 }
 
 select,button{
-padding:8px 12px;
+padding:10px;
 border-radius:6px;
 border:1px solid #ccc;
-font-weight:600;
 }
 
 button{
-background:#1f3c88;
+background:#2d4a8a;
 color:white;
 border:none;
 cursor:pointer;
 }
 
-/* A4 PAGE */
+/* A4 CARD */
 
-.a4{
+.card{
 background:white;
-width:210mm;
-min-height:297mm;
+max-width:900px;
 margin:auto;
-padding:25px;
-box-shadow:0 0 20px rgba(0,0,0,0.1);
+padding:20px;
+border-radius:12px;
+box-shadow:0 4px 12px rgba(0,0,0,.08);
 }
 
-/* HEADER */
-
 h2{
-margin-top:0;
 text-align:center;
+margin-bottom:20px;
 }
 
 /* TABLE */
@@ -60,19 +57,19 @@ text-align:center;
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:20px;
 }
 
 th{
-background:#1f3c88;
+background:#2d4a8a;
 color:white;
 padding:10px;
-text-align:left;
+text-align:center;
 }
 
 td{
-padding:8px;
+padding:10px;
 border-bottom:1px solid #ddd;
+text-align:center;
 }
 
 .amount{
@@ -81,19 +78,24 @@ white-space:nowrap;
 }
 
 .link{
-color:#1f3c88;
+color:#2d4a8a;
 cursor:pointer;
 text-decoration:underline;
-font-weight:600;
 }
 
-/* MOBILE FIX */
+/* MOBILE */
 
-@media(max-width:900px){
-.a4{
-width:100%;
-min-height:auto;
+@media(max-width:600px){
+
+.card{
+padding:10px;
 }
+
+th,td{
+font-size:12px;
+padding:6px;
+}
+
 }
 
 </style>
@@ -101,13 +103,17 @@ min-height:auto;
 
 <body>
 
-<div class="topbar">
+<div class="top">
+
 <select id="firm"></select>
-<button onclick="load()">Search</button>
-<button onclick="shareLedger()">Share JPG</button>
+
+<button onclick="loadLedger()">Search</button>
+
+<button onclick="shareJPG()">Share JPG</button>
+
 </div>
 
-<div id="ledgerPage" class="a4">
+<div id="ledgerBox" class="card">
 
 <h2>Ledger Statement</h2>
 
@@ -118,9 +124,9 @@ min-height:auto;
 <th>Date</th>
 <th>Invoice</th>
 <th>Particular</th>
-<th class="amount">Bill</th>
-<th class="amount">Receipt</th>
-<th class="amount">Balance</th>
+<th>Bill</th>
+<th>Receipt</th>
+<th>Balance</th>
 </tr>
 </thead>
 
@@ -134,66 +140,92 @@ min-height:auto;
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 
-/* LOAD FIRMS */
+let customers=[];
+
+/* LOAD CUSTOMERS */
 
 fetch(API+"/api/customers")
 .then(r=>r.json())
 .then(d=>{
-firm.innerHTML='<option value="">Select Firm</option>';
+customers=d;
 d.forEach(c=>{
-firm.innerHTML+=`
-<option value="${c.id}">
+firm.innerHTML+=
+`<option value="${c.id}">
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
 });
 
+/* DATE FORMAT */
+
+function formatDate(d){
+return new Date(d).toLocaleDateString("en-GB");
+}
+
+/* PERIOD FORMAT */
+
+function formatPeriod(f,t){
+
+if(!f) return "";
+
+const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const d1=new Date(f);
+const d2=new Date(t);
+
+return `${m[d1.getMonth()]} ${d1.getFullYear()} 
+to 
+${m[d2.getMonth()]} ${d2.getFullYear()}`;
+
+}
+
 /* LOAD LEDGER */
 
-async function load(){
-
-if(!firm.value){
-alert("Select firm");
-return;
-}
+async function loadLedger(){
 
 const res=await fetch(API+"/api/ledger-dashboard");
 const data=await res.json();
 
-const rows=data.filter(x=>x.customer_id==firm.value);
+const f=data.filter(x=>x.customer_id==firm.value);
 
 let bal=0;
 tb.innerHTML="";
 
-rows.forEach(d=>{
+f.forEach(d=>{
 
 let bill="",receipt="",particular="";
 
-/* INVOICE */
+/* BILL */
 
-if(d.invoice_amount){
+if(d.type=="Bill"){
 
-bill="₹"+d.invoice_amount;
-bal+=d.invoice_amount;
+particular=formatPeriod(d.period_from,d.period_to);
 
-particular =
-formatPeriod(d.period_from,d.period_to);
+bill="₹"+d.bill_amount;
+bal+=d.bill_amount;
+
+if(d.receipt_amount){
+receipt="₹"+d.receipt_amount;
+bal-=d.receipt_amount;
+}
 
 }
 
 /* RECEIPT */
 
-if(d.receipt_amount){
+else{
 
+particular=d.type;
 receipt="₹"+d.receipt_amount;
 bal-=d.receipt_amount;
 
-particular=d.type;
-
 }
+
+/* ROW */
 
 tb.innerHTML+=`
 <tr>
+
 <td>${formatDate(d.date)}</td>
 
 <td class="link"
@@ -204,52 +236,52 @@ ${d.invoice_no||""}
 <td>${particular}</td>
 
 <td class="amount">${bill}</td>
+
 <td class="amount">${receipt}</td>
+
 <td class="amount">₹${bal}</td>
-</tr>`;
+
+</tr>
+`;
+
 });
 
 }
 
-/* FORMAT PERIOD */
-
-function formatPeriod(f,t){
-
-if(!f||!t) return "";
-
-const m=["Jan","Feb","Mar","Apr","May","Jun",
-"Jul","Aug","Sep","Oct","Nov","Dec"];
-
-const d1=new Date(f);
-const d2=new Date(t);
-
-return `${m[d1.getMonth()]} ${d1.getFullYear()}
-to
-${m[d2.getMonth()]} ${d2.getFullYear()}`;
-}
-
-/* FORMAT DATE */
-
-function formatDate(d){
-return new Date(d).toLocaleDateString("en-GB");
-}
-
-/* OPEN INVOICE */
+/* OPEN INVOICE EDIT */
 
 function openInvoice(no){
-if(no) window.open("invoice.html?invoice="+no);
+
+if(!no) return;
+
+window.location.href=
+"invoice-create.html?invoice="+no;
+
 }
 
-/* SHARE */
+/* SHARE JPG */
 
-function shareLedger(){
+function shareJPG(){
 
-html2canvas(ledgerPage).then(canvas=>{
+html2canvas(ledgerBox).then(canvas=>{
+
 canvas.toBlob(blob=>{
-const file=new File([blob],"Ledger.jpg",{type:"image/jpeg"});
-navigator.share({files:[file],title:"Ledger"});
+
+const file=new File(
+[blob],
+"Ledger.jpg",
+{type:"image/jpeg"}
+);
+
+navigator.share({
+files:[file],
+title:"Ledger Statement"
 });
+
 });
+
+});
+
 }
 
 </script>
