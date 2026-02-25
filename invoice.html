@@ -26,10 +26,17 @@ margin:auto;
 box-shadow:0 6px 20px rgba(0,0,0,0.08);
 }
 
+label{
+font-weight:600;
+font-size:14px;
+display:block;
+margin-top:10px;
+}
+
 input,select{
 width:100%;
 padding:10px;
-margin-bottom:10px;
+margin-top:5px;
 border:1px solid #ccc;
 border-radius:6px;
 }
@@ -42,7 +49,7 @@ border-radius:6px;
 background:#2d4a8a;
 color:white;
 font-weight:600;
-margin-top:6px;
+margin-top:10px;
 cursor:pointer;
 }
 
@@ -55,16 +62,13 @@ padding:20px;
 border-radius:14px;
 max-width:900px;
 margin:auto;
+overflow-x:auto;
 }
 
 .top{
 display:flex;
 justify-content:space-between;
 flex-wrap:wrap;
-}
-
-.left h3{
-margin:0;
 }
 
 .party{
@@ -89,26 +93,14 @@ font-weight:bold;
 font-size:18px;
 }
 
-.date{
-font-weight:bold;
-}
+/* DATE + PERIOD BOX */
 
-.period{
+.metaBox{
+border:2px solid #000;
+padding:8px 12px;
 margin-top:15px;
-background:#1f3c88;
-color:white;
-padding:6px 12px;
-display:inline-block;
-border-radius:6px;
-}
-
-.gstRate{
-margin-top:10px;
 font-weight:bold;
-}
-
-.gstRate span{
-color:red;
+display:inline-block;
 }
 
 /* TABLE */
@@ -116,7 +108,7 @@ color:red;
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:15px;
+margin-top:20px;
 }
 
 th{
@@ -130,14 +122,37 @@ border-bottom:1px solid #ddd;
 padding:10px;
 }
 
-.total{
+.gstRate{
 font-weight:bold;
-font-size:18px;
+}
+
+.gstRate span{
+color:red;
 }
 
 .discount{
 color:red;
 font-weight:bold;
+}
+
+.total{
+font-weight:bold;
+font-size:18px;
+}
+
+/* MOBILE */
+
+@media(max-width:600px){
+
+.top{
+flex-direction:column;
+gap:8px;
+}
+
+.right{
+text-align:left;
+}
+
 }
 
 </style>
@@ -149,9 +164,13 @@ font-weight:bold;
 
 <h2>Create Invoice</h2>
 
+<label>Select Party</label>
 <select id="party" onchange="loadCustomer()"></select>
 
+<label>Person Name</label>
 <input id="person">
+
+<label>GSTIN</label>
 <input id="gstin">
 
 <label>From</label>
@@ -160,20 +179,25 @@ font-weight:bold;
 <label>To</label>
 <input type="month" id="to">
 
-<input id="gstFee" placeholder="GST / Month">
-<input id="auditFee" placeholder="Audit">
-<input id="itrFee" placeholder="ITR">
+<label>GST Charges / Month</label>
+<input id="gstFee">
 
+<label>Audit</label>
+<input id="auditFee">
+
+<label>ITR</label>
+<input id="itrFee">
+
+<label>Other Title</label>
 <input id="otherTitle">
+
+<label>Other Amount</label>
 <input id="otherAmt">
 
-<input id="other2Title">
-<input id="other2Amt">
-
-<input id="discount" placeholder="Discount">
+<label>Discount</label>
+<input id="discount">
 
 <button onclick="generateInvoice()">Generate Invoice</button>
-<button onclick="saveInvoice()">Save Invoice</button>
 <button onclick="shareJPG()">Share JPG</button>
 
 </div>
@@ -184,7 +208,7 @@ font-weight:bold;
 
 <div class="top">
 
-<div class="left">
+<div>
 <h3>RS Associates</h3>
 <div class="party" id="invParty"></div>
 <div class="gstin" id="invGSTIN"></div>
@@ -192,14 +216,11 @@ font-weight:bold;
 
 <div class="right">
 <div class="invNo" id="invNo"></div>
-<div class="date" id="invDate"></div>
 </div>
 
 </div>
 
-<div class="period" id="invPeriod"></div>
-
-<div class="gstRate" id="gstRate"></div>
+<div class="metaBox" id="metaBox"></div>
 
 <table>
 
@@ -258,7 +279,7 @@ itrFee.value=c.itr_fee;
 
 }
 
-/* MONTH */
+/* MONTH CALC */
 function monthDiff(a,b){
 
 const d1=new Date(a);
@@ -269,7 +290,7 @@ return (d2.getFullYear()-d1.getFullYear())*12 +
 
 }
 
-/* PERIOD */
+/* PERIOD FORMAT */
 function formatPeriod(f,t){
 
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -277,9 +298,7 @@ const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
 const d1=new Date(f);
 const d2=new Date(t);
 
-return `${m[d1.getMonth()]} ${d1.getFullYear()}
-to
-${m[d2.getMonth()]} ${d2.getFullYear()}`;
+return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
 
 }
 
@@ -293,24 +312,31 @@ let total=
 +gstTotal+
 +auditFee.value+
 +itrFee.value+
-+otherAmt.value+
-+other2Amt.value-
++otherAmt.value-
 +discount.value;
 
 invParty.innerText=party.options[party.selectedIndex].text;
 invGSTIN.innerText="GSTIN: "+gstin.value;
-invDate.innerText=new Date().toLocaleDateString();
 invNo.innerText="RS-"+Math.floor(Math.random()*1000);
 
-invPeriod.innerText=formatPeriod(from.value,to.value);
-
-gstRate.innerHTML=
-`GST Fees — <span>₹${gstFee.value} / Month</span>`;
+metaBox.innerText=
+`Date: ${new Date().toLocaleDateString()} | Billing Period: ${formatPeriod(from.value,to.value)}`;
 
 let html="";
 
-if(gstTotal>0)
-html+=`<tr><td>GST Filing (${months} Months)</td><td>₹${gstTotal}</td></tr>`;
+if(gstTotal>0){
+
+html+=`
+<tr>
+<td>
+GST Filing (${months} Months)
+<div class="gstRate">
+GST Fees — <span>₹${gstFee.value} / Month</span>
+</div>
+</td>
+<td>₹${gstTotal}</td>
+</tr>`;
+}
 
 if(auditFee.value>0)
 html+=`<tr><td>Audit</td><td>₹${auditFee.value}</td></tr>`;
@@ -321,24 +347,11 @@ html+=`<tr><td>ITR</td><td>₹${itrFee.value}</td></tr>`;
 if(otherAmt.value>0)
 html+=`<tr><td>${otherTitle.value}</td><td>₹${otherAmt.value}</td></tr>`;
 
-if(other2Amt.value>0)
-html+=`<tr><td>${other2Title.value}</td><td>₹${other2Amt.value}</td></tr>`;
-
 if(discount.value>0)
 html+=`<tr class="discount"><td>Discount</td><td>-₹${discount.value}</td></tr>`;
 
 billBody.innerHTML=html;
 grandTotal.innerText="₹ "+total;
-
-}
-
-/* SAVE (RESET FORM ONLY) */
-function saveInvoice(){
-
-document.querySelectorAll(".card input").forEach(i=>i.value="");
-party.value="";
-
-alert("Saved — Invoice kept for sharing");
 
 }
 
