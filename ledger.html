@@ -8,13 +8,16 @@
 
 <style>
 
+/* ===== BODY ===== */
+
 body{
 font-family:Segoe UI;
 background:#eef2f7;
 padding:20px;
+margin:0;
 }
 
-/* TOP BAR */
+/* ===== TOP BAR ===== */
 
 .top{
 display:flex;
@@ -27,6 +30,7 @@ select,button{
 padding:10px;
 border-radius:6px;
 border:1px solid #ccc;
+font-size:14px;
 }
 
 button{
@@ -36,15 +40,15 @@ border:none;
 cursor:pointer;
 }
 
-/* A4 CARD */
+/* ===== A4 CARD ===== */
 
 .card{
 background:white;
 max-width:900px;
 margin:auto;
-padding:20px;
-border-radius:12px;
-box-shadow:0 4px 12px rgba(0,0,0,.08);
+padding:25px;
+border-radius:14px;
+box-shadow:0 6px 18px rgba(0,0,0,.08);
 }
 
 h2{
@@ -52,7 +56,7 @@ text-align:center;
 margin-bottom:20px;
 }
 
-/* TABLE */
+/* ===== TABLE ===== */
 
 table{
 width:100%;
@@ -62,7 +66,7 @@ border-collapse:collapse;
 th{
 background:#2d4a8a;
 color:white;
-padding:10px;
+padding:12px;
 text-align:center;
 }
 
@@ -75,20 +79,22 @@ text-align:center;
 .amount{
 text-align:right;
 white-space:nowrap;
+font-weight:500;
 }
 
 .link{
 color:#2d4a8a;
 cursor:pointer;
 text-decoration:underline;
+font-weight:600;
 }
 
-/* MOBILE */
+/* ===== MOBILE ===== */
 
 @media(max-width:600px){
 
 .card{
-padding:10px;
+padding:12px;
 }
 
 th,td{
@@ -103,6 +109,8 @@ padding:6px;
 
 <body>
 
+<!-- ===== TOP FILTER ===== -->
+
 <div class="top">
 
 <select id="firm"></select>
@@ -112,6 +120,8 @@ padding:6px;
 <button onclick="shareJPG()">Share JPG</button>
 
 </div>
+
+<!-- ===== LEDGER BOX ===== -->
 
 <div id="ledgerBox" class="card">
 
@@ -142,102 +152,109 @@ const API="https://backend.rajeevyadav2596.workers.dev";
 
 let customers=[];
 
-/* LOAD CUSTOMERS */
+/* ================= LOAD CUSTOMERS ================= */
 
-fetch(API+"/api/customers")
-.then(r=>r.json())
-.then(d=>{
-customers=d;
-d.forEach(c=>{
-firm.innerHTML+=
-`<option value="${c.id}">
+async function init(){
+
+const res = await fetch(API+"/api/customers");
+customers = await res.json();
+
+firm.innerHTML='<option value="">Select Party</option>';
+
+customers.forEach(c=>{
+
+firm.innerHTML += `
+<option value="${c.id}">
 ${c.firm_name} - ${c.person_name}
 </option>`;
-});
+
 });
 
-/* DATE FORMAT */
-
-function formatDate(d){
-return new Date(d).toLocaleDateString("en-GB");
 }
 
-/* PERIOD FORMAT */
+init();
+
+/* ================= DATE FORMAT ================= */
+
+function formatDate(dt){
+
+if(!dt) return "";
+
+const d=new Date(dt);
+return d.toLocaleDateString("en-GB");
+
+}
+
+/* ================= PERIOD FORMAT ================= */
 
 function formatPeriod(f,t){
 
-if(!f) return "";
+if(!f || !t) return "";
 
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 const d1=new Date(f);
 const d2=new Date(t);
 
-return `${m[d1.getMonth()]} ${d1.getFullYear()} 
-to 
-${m[d2.getMonth()]} ${d2.getFullYear()}`;
+return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
 
 }
 
-/* LOAD LEDGER */
+/* ================= LOAD LEDGER ================= */
 
 async function loadLedger(){
 
-const res=await fetch(API+"/api/ledger-dashboard");
-const data=await res.json();
+const res = await fetch(API+"/api/ledger-dashboard");
+const data = await res.json();
 
-const f=data.filter(x=>x.customer_id==firm.value);
+const filtered = data.filter(x=>x.customer_id==firm.value);
 
-let bal=0;
+let bal = 0;
 tb.innerHTML="";
 
-f.forEach(d=>{
+filtered.forEach(d=>{
 
-let bill="",receipt="",particular="";
+let bill = Number(d.bill) || 0;
+let receipt = Number(d.receipt) || 0;
 
-/* BILL */
+bal += bill;
+bal -= receipt;
 
-if(d.type=="Bill"){
+let particular = "";
 
-particular=formatPeriod(d.period_from,d.period_to);
+/* BILL ENTRY */
 
-bill="₹"+d.bill_amount;
-bal+=d.bill_amount;
+if(d.invoice_no){
 
-if(d.receipt_amount){
-receipt="₹"+d.receipt_amount;
-bal-=d.receipt_amount;
-}
+particular = formatPeriod(d.period_from,d.period_to);
 
 }
 
-/* RECEIPT */
+/* RECEIPT ENTRY */
 
 else{
 
-particular=d.type;
-receipt="₹"+d.receipt_amount;
-bal-=d.receipt_amount;
+particular = d.entry_type || "Receipt";
 
 }
 
 /* ROW */
 
-tb.innerHTML+=`
+tb.innerHTML += `
 <tr>
 
 <td>${formatDate(d.date)}</td>
 
 <td class="link"
 onclick="openInvoice('${d.invoice_no}')">
-${d.invoice_no||""}
+${d.invoice_no || ""}
 </td>
 
 <td>${particular}</td>
 
-<td class="amount">${bill}</td>
+<td class="amount">${bill ? "₹"+bill : ""}</td>
 
-<td class="amount">${receipt}</td>
+<td class="amount">${receipt ? "₹"+receipt : ""}</td>
 
 <td class="amount">₹${bal}</td>
 
@@ -248,18 +265,18 @@ ${d.invoice_no||""}
 
 }
 
-/* OPEN INVOICE EDIT */
+/* ================= OPEN PREFILLED INVOICE ================= */
 
 function openInvoice(no){
 
 if(!no) return;
 
-window.location.href=
+window.location.href =
 "invoice-create.html?invoice="+no;
 
 }
 
-/* SHARE JPG */
+/* ================= SHARE JPG ================= */
 
 function shareJPG(){
 
@@ -267,7 +284,7 @@ html2canvas(ledgerBox).then(canvas=>{
 
 canvas.toBlob(blob=>{
 
-const file=new File(
+const file = new File(
 [blob],
 "Ledger.jpg",
 {type:"image/jpeg"}
