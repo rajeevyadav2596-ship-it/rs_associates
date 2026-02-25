@@ -46,20 +46,25 @@ margin-top:6px;
 cursor:pointer;
 }
 
-/* INVOICE */
+/* ===== INVOICE ===== */
 
 .invoice{
 background:white;
 margin-top:25px;
 padding:20px;
 border-radius:14px;
-overflow-x:auto;
+max-width:900px;
+margin:auto;
 }
 
-.header{
+.top{
 display:flex;
 justify-content:space-between;
 flex-wrap:wrap;
+}
+
+.left h3{
+margin:0;
 }
 
 .party{
@@ -71,22 +76,42 @@ text-transform:capitalize;
 
 .gstin{
 font-weight:bold;
+margin-top:5px;
 }
 
-.meta{
+.right{
 text-align:right;
 }
 
 .invNo{
 color:red;
 font-weight:bold;
+font-size:18px;
+}
+
+.date{
+font-weight:bold;
 }
 
 .period{
-color:red;
-font-weight:bold;
-margin-top:5px;
+margin-top:15px;
+background:#1f3c88;
+color:white;
+padding:6px 12px;
+display:inline-block;
+border-radius:6px;
 }
+
+.gstRate{
+margin-top:10px;
+font-weight:bold;
+}
+
+.gstRate span{
+color:red;
+}
+
+/* TABLE */
 
 table{
 width:100%;
@@ -105,29 +130,14 @@ border-bottom:1px solid #ddd;
 padding:10px;
 }
 
-.discount{
-color:red;
-font-weight:bold;
-}
-
 .total{
 font-weight:bold;
 font-size:18px;
 }
 
-/* MOBILE FIT */
-
-@media(max-width:600px){
-
-.header{
-flex-direction:column;
-gap:8px;
-}
-
-.meta{
-text-align:left;
-}
-
+.discount{
+color:red;
+font-weight:bold;
 }
 
 </style>
@@ -172,22 +182,24 @@ text-align:left;
 
 <div id="invoice" class="invoice">
 
-<div class="header">
+<div class="top">
 
-<div>
+<div class="left">
 <h3>RS Associates</h3>
 <div class="party" id="invParty"></div>
 <div class="gstin" id="invGSTIN"></div>
 </div>
 
-<div class="meta">
-<div id="invDate"></div>
+<div class="right">
 <div class="invNo" id="invNo"></div>
+<div class="date" id="invDate"></div>
 </div>
 
 </div>
 
 <div class="period" id="invPeriod"></div>
+
+<div class="gstRate" id="gstRate"></div>
 
 <table>
 
@@ -216,7 +228,7 @@ text-align:left;
 const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
 
-/* LOAD CUSTOMERS */
+/* LOAD */
 async function init(){
 
 const res=await fetch(API+"/api/customers");
@@ -243,12 +255,10 @@ gstin.value=c.gstin;
 gstFee.value=c.gst_charges;
 auditFee.value=c.audit_fee;
 itrFee.value=c.itr_fee;
-otherTitle.value=c.other_fee_name;
-otherAmt.value=c.other_fee_amount;
 
 }
 
-/* MONTH CALC */
+/* MONTH */
 function monthDiff(a,b){
 
 const d1=new Date(a);
@@ -259,7 +269,7 @@ return (d2.getFullYear()-d1.getFullYear())*12 +
 
 }
 
-/* FORMAT PERIOD */
+/* PERIOD */
 function formatPeriod(f,t){
 
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -267,9 +277,9 @@ const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
 const d1=new Date(f);
 const d2=new Date(t);
 
-return `${m[d1.getMonth()]}-${String(d1.getFullYear()).slice(2)}
+return `${m[d1.getMonth()]} ${d1.getFullYear()}
 to
-${m[d2.getMonth()]}-${String(d2.getFullYear()).slice(2)}`;
+${m[d2.getMonth()]} ${d2.getFullYear()}`;
 
 }
 
@@ -290,74 +300,56 @@ let total=
 invParty.innerText=party.options[party.selectedIndex].text;
 invGSTIN.innerText="GSTIN: "+gstin.value;
 invDate.innerText=new Date().toLocaleDateString();
+invNo.innerText="RS-"+Math.floor(Math.random()*1000);
+
 invPeriod.innerText=formatPeriod(from.value,to.value);
+
+gstRate.innerHTML=
+`GST Fees — <span>₹${gstFee.value} / Month</span>`;
 
 let html="";
 
-/* CONDITIONAL ROWS */
-
 if(gstTotal>0)
-html+=`<tr><td>GST Filing (${months} Months)</td><td>${gstTotal}</td></tr>`;
+html+=`<tr><td>GST Filing (${months} Months)</td><td>₹${gstTotal}</td></tr>`;
 
 if(auditFee.value>0)
-html+=`<tr><td>Audit</td><td>${auditFee.value}</td></tr>`;
+html+=`<tr><td>Audit</td><td>₹${auditFee.value}</td></tr>`;
 
 if(itrFee.value>0)
-html+=`<tr><td>ITR</td><td>${itrFee.value}</td></tr>`;
+html+=`<tr><td>ITR</td><td>₹${itrFee.value}</td></tr>`;
 
 if(otherAmt.value>0)
-html+=`<tr><td>${otherTitle.value}</td><td>${otherAmt.value}</td></tr>`;
+html+=`<tr><td>${otherTitle.value}</td><td>₹${otherAmt.value}</td></tr>`;
 
 if(other2Amt.value>0)
-html+=`<tr><td>${other2Title.value}</td><td>${other2Amt.value}</td></tr>`;
+html+=`<tr><td>${other2Title.value}</td><td>₹${other2Amt.value}</td></tr>`;
 
 if(discount.value>0)
-html+=`<tr class="discount"><td>Discount</td><td>-${discount.value}</td></tr>`;
+html+=`<tr class="discount"><td>Discount</td><td>-₹${discount.value}</td></tr>`;
 
 billBody.innerHTML=html;
 grandTotal.innerText="₹ "+total;
 
 }
 
-/* SAVE + RESET */
-async function saveInvoice(){
+/* SAVE (RESET FORM ONLY) */
+function saveInvoice(){
 
-generateInvoice();
-
-await fetch(API+"/api/add-invoice",{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({ dummy:1 })
-});
-
-/* RESET */
-document.querySelectorAll("input").forEach(i=>i.value="");
+document.querySelectorAll(".card input").forEach(i=>i.value="");
 party.value="";
-billBody.innerHTML="";
-grandTotal.innerText="";
 
-alert("Saved & Reset");
+alert("Saved — Invoice kept for sharing");
 
 }
 
-/* SHARE JPG */
+/* SHARE */
 function shareJPG(){
 
 html2canvas(invoice).then(canvas=>{
-
 canvas.toBlob(blob=>{
-
 const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
-
-if(navigator.share){
-navigator.share({
-files:[file],
-title:"Invoice"
+navigator.share({ files:[file], title:"Invoice" });
 });
-}
-
-});
-
 });
 
 }
