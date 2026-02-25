@@ -271,7 +271,9 @@ await loadInvoiceIfEdit();
 async function loadInvoiceIfEdit(){
 
 const params=new URLSearchParams(window.location.search);
-const no=params.get("no");
+const no =
+params.get("no") ||
+params.get("invoice");   // SUPPORT BOTH
 if(!no) return;
 
 editInvoiceNo=no;
