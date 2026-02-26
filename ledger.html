@@ -68,7 +68,7 @@ text-align:center;
 }
 
 .amount{
-text-align:center;  /* CENTERED */
+text-align:center;
 font-weight:500;
 }
 
@@ -134,7 +134,7 @@ function formatDate(dt){
 return new Date(dt).toLocaleDateString("en-GB");
 }
 
-/* FORMAT PERIOD → Jan-2026 to Apr-2027 */
+/* FORMAT PERIOD */
 
 function formatPeriod(f,t){
 
@@ -180,24 +180,39 @@ bal-=receipt;
 
 let particular="";
 
-/* BILL ENTRY */
+/* ===== ENTRY TYPE DETECTION ===== */
 
-if(d.invoice_no){
+if(d.invoice_no?.startsWith("RS-")){
+// INVOICE
 particular=formatPeriod(d.period_from,d.period_to);
 }
-
-/* RECEIPT ENTRY */
-
-else{
+else if(d.invoice_no?.startsWith("P-")){
+// RECEIPT WITH NUMBER
 particular=d.particular || "Receipt";
 }
+else{
+// OLD RECEIPTS WITHOUT NUMBER
+particular=d.particular || "Receipt";
+}
+
+/* ===== CLICK LINK ===== */
+
+let linkAction="";
+
+if(d.invoice_no?.startsWith("RS-")){
+linkAction=`onclick="openInvoice('${d.invoice_no}')"`
+}
+else{
+linkAction="";
+}
+
+/* ===== ROW ===== */
 
 tb.innerHTML+=`
 <tr>
 <td>${formatDate(d.date)}</td>
 
-<td class="link"
-onclick="openInvoice('${d.invoice_no}')">
+<td class="link" ${linkAction}>
 ${d.invoice_no||""}
 </td>
 
@@ -232,7 +247,7 @@ window.location.href =
 
 }
 
-/* SHARE */
+/* SHARE JPG */
 
 function shareJPG(){
 
