@@ -5,7 +5,6 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- PDF + Canvas -->
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -14,24 +13,24 @@
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-padding:12px;
 margin:0;
+padding:12px;
 }
 
-/* TOP */
+/* TOP BAR */
 
 .top{
 display:flex;
-gap:10px;
+gap:8px;
 flex-wrap:wrap;
-margin-bottom:15px;
+margin-bottom:12px;
 }
 
 select,button{
-padding:10px;
+padding:9px;
 border-radius:6px;
 border:1px solid #ccc;
-font-size:14px;
+font-size:13px;
 }
 
 button{
@@ -53,19 +52,29 @@ border-radius:14px;
 box-shadow:0 6px 18px rgba(0,0,0,.08);
 }
 
-/* TITLE */
+/* HEADER */
 
 h2{
 text-align:center;
-margin-bottom:15px;
+margin:8px 0 15px 0;
+}
+
+.partyName{
+text-align:center;
+color:green;
+font-weight:bold;
+font-size:16px;
+margin-top:5px;
+}
+
+.gstin{
+text-align:center;
+font-size:13px;
+margin-bottom:10px;
+font-weight:600;
 }
 
 /* TABLE */
-
-.tableWrap{
-width:100%;
-overflow-x:auto;
-}
 
 table{
 width:100%;
@@ -75,15 +84,16 @@ border-collapse:collapse;
 th{
 background:#2d4a8a;
 color:white;
-padding:10px;
-font-size:13px;
+padding:8px;
+font-size:12px;
 }
 
 td{
-padding:9px;
+padding:8px;
 border-bottom:1px solid #ddd;
-font-size:13px;
+font-size:12px;
 text-align:center;
+word-break:break-word;
 }
 
 /* COLORS */
@@ -109,17 +119,25 @@ color:red;
 font-weight:bold;
 }
 
-/* MOBILE SCALE */
+/* MOBILE FIX */
 
 @media(max-width:600px){
 
-.card{
-padding:12px;
+th,td{
+font-size:11px;
+padding:6px;
 }
 
-th,td{
-font-size:12px;
-padding:7px;
+select{
+width:100%;
+}
+
+.top{
+flex-direction:column;
+}
+
+button{
+width:100%;
 }
 
 }
@@ -133,18 +151,21 @@ padding:7px;
 <select id="firm"></select>
 <button onclick="loadLedger()">Search</button>
 <button onclick="sharePDF()">Share PDF</button>
+<button onclick="shareJPG()">Share JPG</button>
 </div>
 
 <div id="ledgerBox" class="card">
 
 <h2>Ledger Statement</h2>
 
-<div class="tableWrap">
+<div id="partyDisplay" class="partyName"></div>
+<div id="gstDisplay" class="gstin"></div>
+
 <table>
 <thead>
 <tr>
 <th>Date</th>
-<th>Invoice</th>
+<th>No</th>
 <th>Particular</th>
 <th>Bill</th>
 <th>Receipt</th>
@@ -153,7 +174,6 @@ padding:7px;
 </thead>
 <tbody id="tb"></tbody>
 </table>
-</div>
 
 </div>
 
@@ -169,7 +189,7 @@ fetch(API+"/api/customers")
 firm.innerHTML='<option value="">Select Party</option>';
 d.forEach(c=>{
 firm.innerHTML+=
-`<option value="${c.id}">
+`<option value="${c.id}" data-gst="${c.gstin}">
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
@@ -196,6 +216,10 @@ return Number(n).toLocaleString("en-IN");
 /* LOAD LEDGER */
 
 async function loadLedger(){
+
+const selected=firm.options[firm.selectedIndex];
+partyDisplay.innerText=selected.text || "";
+gstDisplay.innerText="GSTIN: "+(selected.dataset.gst||"");
 
 const res=await fetch(API+"/api/ledger-dashboard");
 const data=await res.json();
@@ -239,22 +263,11 @@ let balClass=(i===filtered.length-1)?"closingBal":"";
 tb.innerHTML+=`
 <tr>
 <td>${formatDate(d.date)}</td>
-
-<td class="${invClass}" ${click}>
-${d.invoice_no||""}
-</td>
-
+<td class="${invClass}" ${click}>${d.invoice_no||""}</td>
 <td>${particular}</td>
-
 <td>${bill?formatNumber(bill):""}</td>
-
-<td class="${receiptClass}">
-${receipt?formatNumber(receipt):""}
-</td>
-
-<td class="${balClass}">
-${formatNumber(bal)}
-</td>
+<td class="${receiptClass}">${receipt?formatNumber(receipt):""}</td>
+<td class="${balClass}">${formatNumber(bal)}</td>
 </tr>`;
 });
 
@@ -270,40 +283,47 @@ function openReceipt(no){
 window.location.href=`receipt.html?receipt=${no}`;
 }
 
-/* SHARE PDF (A4 MOBILE FIT) */
+/* SHARE JPG */
+
+async function shareJPG(){
+
+const canvas=await html2canvas(ledgerBox,{scale:2});
+const blob=await new Promise(res=>canvas.toBlob(res));
+
+const file=new File([blob],"Ledger.jpg",{type:"image/jpeg"});
+
+if(navigator.share){
+navigator.share({files:[file],title:"Ledger"});
+}else{
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="Ledger.jpg";
+a.click();
+}
+
+}
+
+/* SHARE PDF */
 
 async function sharePDF(){
 
 const { jsPDF } = window.jspdf;
 
-const canvas=await html2canvas(ledgerBox,{
-scale:3,
-useCORS:true
-});
-
+const canvas=await html2canvas(ledgerBox,{scale:3});
 const imgData=canvas.toDataURL("image/png");
 
 const pdf=new jsPDF("p","mm","a4");
 
-const pageWidth=210;
-const pageHeight=295;
-
-const imgWidth=pageWidth;
+const imgWidth=210;
 const imgHeight=(canvas.height*imgWidth)/canvas.width;
 
 pdf.addImage(imgData,"PNG",0,5,imgWidth,imgHeight);
 
-/* SHARE INSTEAD OF DOWNLOAD */
-
 const blob=pdf.output("blob");
-
 const file=new File([blob],"Ledger.pdf",{type:"application/pdf"});
 
 if(navigator.share){
-navigator.share({
-files:[file],
-title:"Ledger Statement"
-});
+navigator.share({files:[file],title:"Ledger"});
 }else{
 pdf.save("Ledger.pdf");
 }
