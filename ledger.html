@@ -14,7 +14,7 @@ body{
 font-family:Segoe UI;
 background:#eef2f7;
 margin:0;
-padding:12px;
+padding:10px;
 }
 
 /* TOP */
@@ -46,7 +46,7 @@ cursor:pointer;
 background:white;
 max-width:900px;
 margin:auto;
-padding:15px;
+padding:14px;
 border-radius:14px;
 box-shadow:0 6px 18px rgba(0,0,0,.08);
 }
@@ -55,7 +55,7 @@ box-shadow:0 6px 18px rgba(0,0,0,.08);
 
 h2{
 text-align:center;
-margin:8px 0 10px;
+margin:6px 0 8px;
 }
 
 .partyName{
@@ -77,8 +77,10 @@ margin-bottom:10px;
 table{
 width:100%;
 border-collapse:collapse;
-table-layout:fixed;   /* IMPORTANT */
+table-layout:fixed;
 }
+
+/* HEAD */
 
 th{
 background:#2d4a8a;
@@ -87,24 +89,29 @@ padding:8px;
 font-size:12px;
 }
 
+/* BODY */
+
 td{
-padding:8px;
+padding:8px 6px;
 border-bottom:1px solid #ddd;
 font-size:12px;
 text-align:center;
-white-space:nowrap;   /* SINGLE LINE */
-overflow:hidden;
-text-overflow:ellipsis;
+white-space:nowrap;
 }
 
-/* COLUMN WIDTHS */
+/* ===== COLUMN WIDTHS ===== */
+/* Adjusted for mobile PDF fit */
 
-.col-date{width:15%;}
-.col-no{width:14%;}
-.col-particular{width:31%;}
+.col-date{width:18%;}
+.col-no{width:15%;}
+.col-particular{
+width:28%;
+white-space:normal;      /* allow wrap */
+word-break:break-word;
+}
 .col-bill{width:13%;}
 .col-receipt{width:13%;}
-.col-balance{width:14%;}
+.col-balance{width:13%;}
 
 /* COLORS */
 
@@ -118,14 +125,12 @@ font-weight:600;
 .receiptAmt{color:green;font-weight:bold;}
 .closingBal{color:red;font-weight:bold;}
 
-/* MOBILE */
+/* MOBILE FONT SCALE */
 
 @media(max-width:600px){
 
-th,td{
-font-size:11px;
-padding:6px;
-}
+th{font-size:11px;}
+td{font-size:11px;}
 
 }
 
@@ -177,14 +182,14 @@ fetch(API+"/api/customers")
 .then(d=>{
 firm.innerHTML='<option value="">Select Party</option>';
 d.forEach(c=>{
-firm.innerHTML+=
-`<option value="${c.id}" data-gst="${c.gstin}">
+firm.innerHTML+=`
+<option value="${c.id}" data-gst="${c.gstin}">
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
 });
 
-/* FORMATTERS */
+/* FORMAT */
 
 function formatDate(dt){
 return new Date(dt).toLocaleDateString("en-GB");
@@ -207,6 +212,7 @@ return Number(n).toLocaleString("en-IN");
 async function loadLedger(){
 
 const selected=firm.options[firm.selectedIndex];
+
 partyDisplay.innerText=selected.text||"";
 gstDisplay.innerText="GSTIN: "+(selected.dataset.gst||"");
 
