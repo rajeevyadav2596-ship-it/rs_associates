@@ -7,93 +7,89 @@
 
 <style>
 
-/* ===== Layout ===== */
-
 body{
-  margin:0;
-  font-family:'Segoe UI',sans-serif;
-  background:#eef2f7;
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:#eef2f7;
 }
 
-/* Header */
+/* HEADER */
 
 .header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  background:#1f3c88;
-  color:white;
-  padding:15px 20px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:#1f3c88;
+color:white;
+padding:15px 20px;
 }
 
 .header h2{
-  margin:0;
-  font-weight:500;
+margin:0;
+font-weight:500;
 }
 
 .header a{
-  color:white;
-  text-decoration:none;
-  font-size:14px;
+color:white;
+text-decoration:none;
+font-size:14px;
 }
 
-/* Container */
+/* CONTAINER */
 
 .container{
-  max-width:700px;
-  margin:30px auto;
-  padding:20px;
+max-width:700px;
+margin:30px auto;
+padding:20px;
 }
 
 .card{
-  background:white;
-  padding:25px;
-  border-radius:14px;
-  box-shadow:0 6px 20px rgba(0,0,0,0.08);
+background:white;
+padding:25px;
+border-radius:14px;
+box-shadow:0 6px 20px rgba(0,0,0,0.08);
 }
 
-/* Inputs */
+/* INPUTS */
 
 label{
-  font-size:14px;
-  color:#333;
+font-size:14px;
+color:#333;
 }
 
-input, select{
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  margin-bottom:14px;
-  border:1px solid #ccc;
-  border-radius:6px;
-  font-size:14px;
+input,select{
+width:100%;
+padding:10px;
+margin-top:6px;
+margin-bottom:14px;
+border:1px solid #ccc;
+border-radius:6px;
+font-size:14px;
 }
 
-/* Buttons */
+/* BUTTONS */
 
 button{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:6px;
-  font-weight:600;
-  cursor:pointer;
-  margin-top:6px;
+width:100%;
+padding:12px;
+border:none;
+border-radius:6px;
+font-weight:600;
+cursor:pointer;
+margin-top:6px;
 }
 
 .save{ background:#2d4a8a; color:white; }
 .delete{ background:#c0392b; color:white; }
 
-/* Mobile */
+/* MOBILE */
 
 @media(max-width:600px){
-
-  .header{
-    flex-direction:column;
-    align-items:flex-start;
-    gap:8px;
-  }
-
+.header{
+flex-direction:column;
+align-items:flex-start;
+gap:8px;
+}
 }
 
 </style>
@@ -101,26 +97,24 @@ button{
 
 <body>
 
-<!-- Header -->
 <div class="header">
-  <h2>Customer Master</h2>
-  <a href="index.html">← Back To Dashboard</a>
+<h2>Customer Master</h2>
+<a href="index.html">← Back To Dashboard</a>
 </div>
 
 <div class="container">
 <div class="card">
 
-<!-- Party Dropdown -->
 <label>Select Party</label>
 <select id="partyDropdown" onchange="selectCustomer()">
 <option value="">-- Select Customer --</option>
 </select>
 
 <label>Firm Name</label>
-<input id="firm">
+<input id="firm" onblur="formatName('firm')">
 
 <label>Person Name</label>
-<input id="person">
+<input id="person" onblur="formatName('person')">
 
 <label>GSTIN No</label>
 <input id="gstin">
@@ -153,7 +147,33 @@ const API = "https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
 let selectedId=null;
 
-/* Load Customers */
+/* ================= FORMAT NAME ================= */
+
+function formatName(id){
+
+let value = document.getElementById(id).value;
+
+value = value
+.toLowerCase()
+.split(" ")
+.map(w => w.charAt(0).toUpperCase() + w.slice(1))
+.join(" ");
+
+document.getElementById(id).value = value;
+
+}
+
+/* ================= NORMALIZE ================= */
+
+function normalizeName(str){
+return str
+.toLowerCase()
+.replace(/\s+/g,"")
+.replace(/[^a-z0-9]/g,"");
+}
+
+/* ================= LOAD CUSTOMERS ================= */
+
 async function loadCustomers(){
 
 const res = await fetch(API+"/api/customers");
@@ -166,20 +186,15 @@ customers.forEach(c=>{
 
 partyDropdown.innerHTML +=
 `<option value="${c.id}">
-${sentenceCase(c.firm_name)} - ${sentenceCase(c.person_name)}
+${c.firm_name} - ${c.person_name}
 </option>`;
 
 });
 
 }
 
-/* Sentence Case */
-function sentenceCase(str){
-return str.replace(/\w\S*/g,
-w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());
-}
+/* ================= SELECT ================= */
 
-/* Select Customer */
 function selectCustomer(){
 
 const id = partyDropdown.value;
@@ -199,8 +214,36 @@ otherAmount.value=c.other_fee_amount||0;
 
 }
 
-/* Save */
+/* ================= SAVE ================= */
+
 async function saveCustomer(){
+
+if(!firm.value || !person.value){
+alert("Enter Firm & Person Name");
+return;
+}
+
+/* DUPLICATE CHECK */
+
+const newKey =
+normalizeName(firm.value + person.value);
+
+const duplicate = customers.find(c=>{
+
+if(c.id == selectedId) return false;
+
+const existingKey =
+normalizeName(c.firm_name + c.person_name);
+
+return existingKey === newKey;
+});
+
+if(duplicate){
+alert("Duplicate Customer Not Allowed ❌");
+return;
+}
+
+/* SAVE */
 
 await fetch(API+"/api/add-customer",{
 method:"POST",
@@ -218,15 +261,20 @@ other_amount:otherAmount.value
 })
 });
 
-alert("Saved");
-location.reload();
+alert("Saved ✅");
+selectedId=null;
+loadCustomers();
 
 }
 
-/* Delete */
+/* ================= DELETE ================= */
+
 async function deleteCustomer(){
 
-if(!selectedId) return alert("Select customer");
+if(!selectedId){
+alert("Select customer first");
+return;
+}
 
 if(!confirm("Delete this customer?")) return;
 
@@ -236,10 +284,23 @@ headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({ id:selectedId })
 });
 
-alert("Deleted");
-location.reload();
+alert("Deleted ✅");
+
+selectedId=null;
+loadCustomers();
+
+firm.value="";
+person.value="";
+gstin.value="";
+gst.value="";
+audit.value="";
+itr.value="";
+otherTitle.value="";
+otherAmount.value="";
 
 }
+
+/* INIT */
 
 loadCustomers();
 
