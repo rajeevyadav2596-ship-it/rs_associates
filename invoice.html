@@ -7,7 +7,6 @@
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
-
 body{
 font-family:Segoe UI;
 background:#eef2f7;
@@ -25,12 +24,7 @@ box-shadow:0 6px 20px rgba(0,0,0,0.08);
 margin-bottom:25px;
 }
 
-label{
-font-weight:600;
-display:block;
-margin-top:12px;
-}
-
+label{font-weight:600;display:block;margin-top:12px;}
 input,select{
 width:100%;
 padding:10px;
@@ -51,9 +45,7 @@ margin-top:12px;
 cursor:pointer;
 }
 
-.deleteBtn{
-background:#c0392b;
-}
+.deleteBtn{background:#c0392b;}
 
 .invoice{
 background:white;
@@ -63,33 +55,13 @@ max-width:900px;
 margin:auto;
 }
 
-.header{
-display:flex;
-justify-content:space-between;
-}
-
-.invNo{
-color:red;
-font-weight:bold;
-font-size:20px;
-}
-
-.party{
-color:green;
-font-weight:bold;
-font-size:20px;
-margin-top:10px;
-}
-
-.gstin{
-font-weight:bold;
-margin-top:5px;
-}
+.header{display:flex;justify-content:space-between;}
+.invNo{color:red;font-weight:bold;font-size:20px;}
+.party{color:green;font-weight:bold;font-size:20px;margin-top:10px;}
+.gstin{font-weight:bold;margin-top:5px;}
 
 .periodBox{text-align:center;margin-top:20px;}
-
 .periodTitle{font-weight:bold;color:red;}
-
 .period{
 background:#1f3c88;
 color:white;
@@ -100,46 +72,14 @@ font-weight:bold;
 margin-top:5px;
 }
 
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:25px;
-}
-
-th{
-border-bottom:2px solid black;
-padding:10px;
-text-align:left;
-}
-
-th.amount{
-text-align:right;
-width:35%;
-}
-
-td{
-border-bottom:1px solid #ddd;
-padding:10px;
-}
-
-td.amount{
-text-align:right;
-white-space:nowrap;
-}
-
+table{width:100%;border-collapse:collapse;margin-top:25px;}
+th{border-bottom:2px solid black;padding:10px;text-align:left;}
+th.amount{text-align:right;width:35%;}
+td{border-bottom:1px solid #ddd;padding:10px;}
+td.amount{text-align:right;white-space:nowrap;}
 .discount{color:red;font-weight:bold;}
-
-.totalRow{
-font-weight:bold;
-font-size:18px;
-}
-
-.due{
-color:green;
-font-weight:bold;
-font-size:18px;
-}
-
+.totalRow{font-weight:bold;font-size:18px;}
+.due{color:green;font-weight:bold;font-size:18px;}
 </style>
 </head>
 
@@ -201,7 +141,6 @@ font-size:18px;
 
 <div class="header">
 <div><h2>RS Associates</h2></div>
-
 <div>
 <div class="invNo" id="invNo"></div>
 <div id="invDate"></div>
@@ -231,18 +170,15 @@ font-size:18px;
 <td>Total</td>
 <td class="amount" id="grandTotal"></td>
 </tr>
-
 <tr>
 <td>Payment</td>
 <td class="amount" id="paymentDisplay"></td>
 </tr>
-
 <tr class="due">
 <td>Due Balance</td>
 <td class="amount due" id="balanceDisplay"></td>
 </tr>
 </tfoot>
-
 </table>
 
 </div>
@@ -253,14 +189,13 @@ const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
 let editInvoiceNo=null;
 
-/* SENTENCE CASE */
+/* ================= SENTENCE CASE ================= */
 
 function sentenceCase(str){
-return str.toLowerCase()
-.replace(/\b\w/g,l=>l.toUpperCase());
+return str?.toLowerCase().replace(/\b\w/g,l=>l.toUpperCase()) || "";
 }
 
-/* LOAD CUSTOMERS */
+/* ================= LOAD CUSTOMERS ================= */
 
 async function init(){
 const res=await fetch(API+"/api/customers");
@@ -278,7 +213,7 @@ ${sentenceCase(c.firm_name)} - ${sentenceCase(c.person_name)}
 await loadInvoiceIfEdit();
 }
 
-/* AUTO FILL CUSTOMER */
+/* ================= LOAD CUSTOMER ================= */
 
 function loadCustomer(){
 const c=customers.find(x=>x.id==party.value);
@@ -290,39 +225,36 @@ gstFee.value=c.gst_charges;
 auditFee.value=c.audit_fee;
 itrFee.value=c.itr_fee;
 
-/* AUTO OTHER FEE */
 other1Title.value=c.other_fee_name || "";
 other1Amt.value=c.other_fee_amount || 0;
 }
 
-/* LOAD EDIT */
+/* ================= LOAD EDIT MODE ================= */
 
 async function loadInvoiceIfEdit(){
 
 const params=new URLSearchParams(window.location.search);
-const no=params.get("invoice");
+const no = params.get("no") || params.get("invoice");
 if(!no) return;
 
 editInvoiceNo=no;
 
 const res=await fetch(API+"/api/invoice/"+no);
 const d=await res.json();
+if(!d.invoice_no) return;
 
 party.value=d.customer_id;
 loadCustomer();
 
 from.value=d.period_from;
 to.value=d.period_to;
-
 auditFee.value=d.audit_total;
 itrFee.value=d.itr_total;
 
 other1Title.value=d.other1_name;
 other1Amt.value=d.other1_amount;
-
 other2Title.value=d.other2_name;
 other2Amt.value=d.other2_amount;
-
 other3Title.value=d.other3_name;
 other3Amt.value=d.other3_amount;
 
@@ -334,25 +266,23 @@ invNo.innerText=d.invoice_no;
 generateInvoice();
 }
 
-/* MONTH DIFF */
+/* ================= CALC ================= */
 
 function monthDiff(a,b){
+if(!a||!b) return 0;
 const d1=new Date(a);
 const d2=new Date(b);
 return (d2.getFullYear()-d1.getFullYear())*12+
 (d2.getMonth()-d1.getMonth())+1;
 }
 
-/* PERIOD FORMAT */
-
 function formatPeriod(f,t){
+if(!f||!t) return "";
 const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const d1=new Date(f);
 const d2=new Date(t);
 return `${m[d1.getMonth()]} ${d1.getFullYear()} to ${m[d2.getMonth()]} ${d2.getFullYear()}`;
 }
-
-/* GENERATE */
 
 function generateInvoice(){
 
@@ -404,16 +334,14 @@ if(discount.value>0)
 html+=`<tr class="discount"><td>Discount</td><td class="amount">-₹${discount.value}</td></tr>`;
 
 billBody.innerHTML=html;
-
 grandTotal.innerText="₹ "+total;
 paymentDisplay.innerText="₹ "+(+payment.value||0);
 balanceDisplay.innerText="₹ "+balance;
 }
 
-/* SAVE */
+/* ================= SAVE ================= */
 
 async function saveInvoice(){
-
 generateInvoice();
 
 const months=monthDiff(from.value,to.value);
@@ -432,28 +360,23 @@ const res=await fetch(API+"/api/add-invoice",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
-
 invoice_no:editInvoiceNo,
 customer_id:party.value,
 from:from.value,
 to:to.value,
 months:months,
-
 gst_total:gstTotal,
 audit_total:+auditFee.value||0,
 itr_total:+itrFee.value||0,
-
 other1_name:other1Title.value,
 other1_amount:+other1Amt.value||0,
 other2_name:other2Title.value,
 other2_amount:+other2Amt.value||0,
 other3_name:other3Title.value,
 other3_amount:+other3Amt.value||0,
-
 discount:+discount.value||0,
 payment:+payment.value||0,
 final_total:total
-
 })
 });
 
@@ -464,15 +387,13 @@ invNo.innerText=data.invoice_no;
 alert("Saved ✅");
 }
 
-/* DELETE */
+/* ================= DELETE ================= */
 
 async function deleteInvoice(){
-
 if(!editInvoiceNo){
 alert("No invoice to delete");
 return;
 }
-
 if(!confirm("Delete this invoice permanently?")) return;
 
 await fetch(API+"/api/delete-invoice",{
@@ -483,6 +404,32 @@ body:JSON.stringify({ invoice_no:editInvoiceNo })
 
 alert("Invoice Deleted ✅");
 window.location.href="ledger.html";
+}
+
+/* ================= SHARE JPG ================= */
+
+function shareJPG(){
+
+const element=document.getElementById("invoice");
+
+html2canvas(element,{scale:2}).then(canvas=>{
+
+canvas.toBlob(async blob=>{
+
+if(navigator.canShare && navigator.canShare({files:[new File([blob],'Invoice.jpg',{type:'image/jpeg'})]})){
+const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
+await navigator.share({files:[file],title:"Invoice"});
+}else{
+const link=document.createElement("a");
+link.download="Invoice.jpg";
+link.href=URL.createObjectURL(blob);
+link.click();
+}
+
+});
+
+});
+
 }
 
 init();
