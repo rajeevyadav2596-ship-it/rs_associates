@@ -5,31 +5,59 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- Google Font for Stylish Text -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
 <style>
 
 body{
-  font-family: 'Segoe UI', sans-serif;
-  background:#eef2f7;
+  font-family: 'Poppins', sans-serif;
+  background:linear-gradient(135deg,#eef2f7,#dfe7f1);
   margin:0;
   padding:20px;
 }
+
+/* CONTAINER */
 
 .container{
   max-width:1000px;
   margin:auto;
 }
 
+/* CARD */
+
 .card{
   background:white;
-  padding:25px;
-  border-radius:14px;
-  box-shadow:0 6px 20px rgba(0,0,0,0.08);
+  padding:30px;
+  border-radius:18px;
+  box-shadow:0 10px 35px rgba(0,0,0,0.08);
+  text-align:center;
 }
 
-h2{
-  margin-bottom:25px;
+/* MAIN HEADING */
+
+.mainTitle{
+  font-size:28px;
+  font-weight:600;
   color:#1f3c88;
+  margin-bottom:5px;
 }
+
+.tagline{
+  font-family:'Playfair Display', serif;
+  font-size:18px;
+  color:#555;
+  font-style:italic;
+  margin-bottom:5px;
+}
+
+.owner{
+  font-size:15px;
+  color:#777;
+  margin-bottom:30px;
+}
+
+/* GRID */
 
 .grid{
   display:grid;
@@ -37,28 +65,72 @@ h2{
   gap:20px;
 }
 
+/* BOX BASE */
+
 .box{
-  background:#1f3c88;
+  padding:28px;
+  border-radius:16px;
   color:white;
-  padding:25px;
-  border-radius:12px;
-  text-align:center;
   font-size:18px;
   font-weight:500;
   cursor:pointer;
-  transition:0.3s;
+  transition:all 0.3s ease;
+  box-shadow:0 8px 20px rgba(0,0,0,0.15);
+  position:relative;
+  overflow:hidden;
 }
 
+/* Ripple effect */
+
+.box:after{
+  content:"";
+  position:absolute;
+  width:0;
+  height:0;
+  background:rgba(255,255,255,0.3);
+  border-radius:50%;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  transition:0.5s;
+}
+
+.box:active:after{
+  width:200%;
+  height:200%;
+}
+
+/* Hover */
+
 .box:hover{
-  background:#16306a;
-  transform:translateY(-3px);
+  transform:translateY(-5px) scale(1.03);
+  box-shadow:0 12px 30px rgba(0,0,0,0.2);
+}
+
+/* COLORS */
+
+.customer{
+  background:linear-gradient(135deg,#1f3c88,#16306a);
+}
+
+.ledger{
+  background:linear-gradient(135deg,#c0392b,#922b21);
+}
+
+.invoice{
+  background:linear-gradient(135deg,#6c5ce7,#4834d4);
+}
+
+.receipt{
+  background:linear-gradient(135deg,#27ae60,#1e8449);
 }
 
 a{
   text-decoration:none;
 }
 
-/* Mobile Improvements */
+/* MOBILE */
+
 @media(max-width:600px){
 
   body{
@@ -66,12 +138,20 @@ a{
   }
 
   .card{
-    padding:20px;
+    padding:22px;
   }
 
   .box{
-    padding:20px;
+    padding:22px;
     font-size:16px;
+  }
+
+  .mainTitle{
+    font-size:22px;
+  }
+
+  .tagline{
+    font-size:15px;
   }
 
 }
@@ -84,24 +164,26 @@ a{
 <div class="container">
   <div class="card">
 
-    <h2>RS Associates – ERP Dashboard</h2>
+    <div class="mainTitle">RS Associates</div>
+    <div class="tagline">A Firm of Advocates & CA</div>
+    <div class="owner">Adv. Shahid Ansari</div>
 
     <div class="grid">
 
       <a href="customer.html">
-        <div class="box">Customer Master</div>
+        <div class="box customer">Customer Master</div>
       </a>
 
       <a href="ledger.html">
-        <div class="box">Ledger Dashboard</div>
+        <div class="box ledger">Ledger Dashboard</div>
       </a>
 
       <a href="invoice.html">
-        <div class="box">Create Invoice</div>
+        <div class="box invoice">Create Invoice</div>
       </a>
 
-      <a href="receipts.html">
-        <div class="box">Receipts</div>
+      <a href="receipt.html">
+        <div class="box receipt">Receipt</div>
       </a>
 
     </div>
