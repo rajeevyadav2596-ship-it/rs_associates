@@ -2,7 +2,6 @@
 <html>
 <head>
 <title>Receipt Entry</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -14,8 +13,6 @@ margin:0;
 padding:15px;
 }
 
-/* CARD */
-
 .card{
 background:white;
 padding:22px;
@@ -24,12 +21,6 @@ max-width:500px;
 margin:auto;
 box-shadow:0 6px 20px rgba(0,0,0,0.08);
 }
-
-h2{
-margin-top:0;
-}
-
-/* FORM */
 
 label{
 font-weight:600;
@@ -46,8 +37,6 @@ border-radius:6px;
 font-size:15px;
 }
 
-/* BUTTON */
-
 button{
 width:100%;
 padding:13px;
@@ -58,19 +47,10 @@ color:white;
 font-weight:600;
 margin-top:18px;
 cursor:pointer;
-font-size:15px;
 }
 
-button:hover{
-background:#1f3c88;
-}
-
-/* MOBILE */
-
-@media(max-width:600px){
-.card{
-padding:18px;
-}
+.deleteBtn{
+background:#c0392b;
 }
 
 </style>
@@ -82,6 +62,9 @@ padding:18px;
 
 <h2>Receipt Entry</h2>
 
+<label>Receipt No</label>
+<input id="receiptNo" readonly>
+
 <label>Firm</label>
 <select id="firm"></select>
 
@@ -89,31 +72,35 @@ padding:18px;
 <input type="date" id="date">
 
 <label>Amount</label>
-<input type="number" id="amount" placeholder="Enter Amount">
+<input type="number" id="amount">
 
 <label>Nature of Payment</label>
 <select id="nature">
-<option value="Cash">Cash</option>
-<option value="Bank">Bank</option>
-<option value="UPI">UPI</option>
-<option value="Cheque">Cheque</option>
-<option value="Adjustment">Adjustment</option>
+<option>Google Pay</option>
+<option>PhonePe</option>
+<option>Paytm</option>
+<option>UPI</option>
+<option>Cash</option>
+<option>Bank</option>
+<option>Cheque</option>
+<option>Adjustment</option>
 </select>
 
 <button onclick="saveReceipt()">Save Receipt</button>
+<button class="deleteBtn" onclick="deleteReceipt()">Delete Receipt</button>
 
 </div>
 
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
+let currentReceiptNo=null;
 
-/* ================= LOAD CUSTOMERS ================= */
+/* LOAD FIRMS */
 
 async function loadFirms(){
-
-const res = await fetch(API+"/api/customers");
-const data = await res.json();
+const res=await fetch(API+"/api/customers");
+const data=await res.json();
 
 firm.innerHTML='<option value="">Select Firm</option>';
 
@@ -123,51 +110,62 @@ firm.innerHTML+=`
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
-
 }
 
-/* ================= DEFAULT DATE ================= */
+/* DEFAULT DATE */
 
-date.value = new Date().toISOString().split("T")[0];
+date.value=new Date().toISOString().split("T")[0];
 
-/* ================= SAVE RECEIPT ================= */
+/* SAVE */
 
 async function saveReceipt(){
 
-if(!firm.value){
-alert("Select Firm");
-return;
-}
+if(!firm.value){ alert("Select Firm"); return; }
+if(!amount.value){ alert("Enter Amount"); return; }
 
-if(!amount.value){
-alert("Enter Amount");
-return;
-}
-
-await fetch(API+"/api/add-receipt",{
+const res=await fetch(API+"/api/add-receipt",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
-
-customer_id: firm.value,
-amount: amount.value,
-nature: nature.value,
-date: date.value
-
+customer_id:firm.value,
+amount:amount.value,
+nature:nature.value,
+date:date.value
 })
 });
 
+const data=await res.json();
+
+currentReceiptNo=data.receipt_no;
+receiptNo.value=data.receipt_no;
+
 alert("Receipt Saved ✅");
 
-/* RESET FORM */
-
 amount.value="";
-nature.value="Cash";
-date.value = new Date().toISOString().split("T")[0];
-
 }
 
-/* INIT */
+/* DELETE */
+
+async function deleteReceipt(){
+
+if(!currentReceiptNo){
+alert("No receipt to delete");
+return;
+}
+
+if(!confirm("Delete this receipt permanently?")) return;
+
+await fetch(API+"/api/delete-receipt",{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+receipt_no:currentReceiptNo
+})
+});
+
+alert("Receipt Deleted ✅");
+location.reload();
+}
 
 loadFirms();
 
