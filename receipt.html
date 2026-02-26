@@ -27,6 +27,7 @@ box-shadow:0 6px 20px rgba(0,0,0,0.08);
 
 h2{
 margin-top:0;
+text-align:center;
 }
 
 /* FORM */
@@ -46,14 +47,13 @@ border-radius:6px;
 font-size:15px;
 }
 
-/* BUTTON */
+/* BUTTONS */
 
 button{
 width:100%;
 padding:13px;
 border:none;
 border-radius:7px;
-background:#2d4a8a;
 color:white;
 font-weight:600;
 margin-top:18px;
@@ -61,7 +61,11 @@ cursor:pointer;
 font-size:15px;
 }
 
-button:hover{
+.saveBtn{
+background:#2d4a8a;
+}
+
+.saveBtn:hover{
 background:#1f3c88;
 }
 
@@ -114,7 +118,7 @@ padding:18px;
 <option>Adjustment</option>
 </select>
 
-<button onclick="saveReceipt()">Save Receipt</button>
+<button class="saveBtn" onclick="saveReceipt()">Save Receipt</button>
 <button class="deleteBtn" onclick="deleteReceipt()">Delete Receipt</button>
 
 </div>
@@ -161,7 +165,10 @@ editReceiptNo=no;
 const res=await fetch(API+"/api/receipt/"+no);
 const d=await res.json();
 
-if(!d || !d.receipt_no) return;
+if(!d || !d.receipt_no){
+alert("Receipt not found");
+return;
+}
 
 receiptNo.value=d.receipt_no;
 firm.value=d.customer_id;
@@ -171,7 +178,7 @@ nature.value=d.nature;
 
 }
 
-/* ================= SAVE RECEIPT ================= */
+/* ================= SAVE (INSERT OR UPDATE) ================= */
 
 async function saveReceipt(){
 
@@ -185,30 +192,26 @@ alert("Enter Amount");
 return;
 }
 
-/* EDIT MODE BLOCKED (Receipts not editable, only delete + new) */
-
-if(editReceiptNo){
-alert("Delete and recreate receipt if correction needed.");
-return;
-}
-
-const res=await fetch(API+"/api/add-receipt",{
+const res = await fetch(API+"/api/add-receipt",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
+
+receipt_no: editReceiptNo,   // enables update
 customer_id: firm.value,
 amount: amount.value,
 nature: nature.value,
 date: date.value
+
 })
 });
 
-const data=await res.json();
+const data = await res.json();
 
-receiptNo.value=data.receipt_no;
-editReceiptNo=data.receipt_no;
+receiptNo.value = data.receipt_no;
+editReceiptNo = data.receipt_no;
 
-alert("Receipt Saved ✅");
+alert(data.updated ? "Receipt Updated ✅" : "Receipt Saved ✅");
 
 }
 
@@ -217,7 +220,7 @@ alert("Receipt Saved ✅");
 async function deleteReceipt(){
 
 if(!editReceiptNo){
-alert("No receipt to delete");
+alert("No receipt selected");
 return;
 }
 
@@ -237,6 +240,7 @@ receipt_no: editReceiptNo
 
 alert("Receipt Deleted ✅");
 
+/* Redirect back to ledger */
 window.location.href="ledger.html";
 
 }
