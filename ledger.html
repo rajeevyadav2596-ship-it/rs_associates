@@ -17,7 +17,7 @@ margin:0;
 padding:12px;
 }
 
-/* TOP BAR */
+/* TOP */
 
 .top{
 display:flex;
@@ -44,7 +44,6 @@ cursor:pointer;
 
 .card{
 background:white;
-width:100%;
 max-width:900px;
 margin:auto;
 padding:15px;
@@ -56,7 +55,7 @@ box-shadow:0 6px 18px rgba(0,0,0,.08);
 
 h2{
 text-align:center;
-margin:8px 0 15px 0;
+margin:8px 0 10px;
 }
 
 .partyName{
@@ -64,14 +63,13 @@ text-align:center;
 color:green;
 font-weight:bold;
 font-size:16px;
-margin-top:5px;
 }
 
 .gstin{
 text-align:center;
 font-size:13px;
-margin-bottom:10px;
 font-weight:600;
+margin-bottom:10px;
 }
 
 /* TABLE */
@@ -79,6 +77,7 @@ font-weight:600;
 table{
 width:100%;
 border-collapse:collapse;
+table-layout:fixed;   /* IMPORTANT */
 }
 
 th{
@@ -93,8 +92,19 @@ padding:8px;
 border-bottom:1px solid #ddd;
 font-size:12px;
 text-align:center;
-word-break:break-word;
+white-space:nowrap;   /* SINGLE LINE */
+overflow:hidden;
+text-overflow:ellipsis;
 }
+
+/* COLUMN WIDTHS */
+
+.col-date{width:15%;}
+.col-no{width:14%;}
+.col-particular{width:31%;}
+.col-bill{width:13%;}
+.col-receipt{width:13%;}
+.col-balance{width:14%;}
 
 /* COLORS */
 
@@ -104,40 +114,17 @@ text-decoration:underline;
 font-weight:600;
 }
 
-.receiptNo{
-color:green;
-font-weight:bold;
-}
+.receiptNo{color:green;font-weight:bold;}
+.receiptAmt{color:green;font-weight:bold;}
+.closingBal{color:red;font-weight:bold;}
 
-.receiptAmt{
-color:green;
-font-weight:bold;
-}
-
-.closingBal{
-color:red;
-font-weight:bold;
-}
-
-/* MOBILE FIX */
+/* MOBILE */
 
 @media(max-width:600px){
 
 th,td{
 font-size:11px;
 padding:6px;
-}
-
-select{
-width:100%;
-}
-
-.top{
-flex-direction:column;
-}
-
-button{
-width:100%;
 }
 
 }
@@ -162,19 +149,21 @@ width:100%;
 <div id="gstDisplay" class="gstin"></div>
 
 <table>
+
 <thead>
 <tr>
-<th>Date</th>
-<th>No</th>
-<th>Particular</th>
-<th>Bill</th>
-<th>Receipt</th>
-<th>Balance</th>
+<th class="col-date">Date</th>
+<th class="col-no">No</th>
+<th class="col-particular">Particular</th>
+<th class="col-bill">Bill</th>
+<th class="col-receipt">Receipt</th>
+<th class="col-balance">Balance</th>
 </tr>
 </thead>
-<tbody id="tb"></tbody>
-</table>
 
+<tbody id="tb"></tbody>
+
+</table>
 </div>
 
 <script>
@@ -218,7 +207,7 @@ return Number(n).toLocaleString("en-IN");
 async function loadLedger(){
 
 const selected=firm.options[firm.selectedIndex];
-partyDisplay.innerText=selected.text || "";
+partyDisplay.innerText=selected.text||"";
 gstDisplay.innerText="GSTIN: "+(selected.dataset.gst||"");
 
 const res=await fetch(API+"/api/ledger-dashboard");
@@ -241,8 +230,6 @@ let particular="";
 let click="";
 let invClass="link";
 
-/* TYPE */
-
 if(d.invoice_no?.startsWith("RS-")){
 particular=formatPeriod(d.period_from,d.period_to);
 click=`onclick="openInvoice('${d.invoice_no}')"`
@@ -253,21 +240,21 @@ click=`onclick="openReceipt('${d.invoice_no}')"`
 invClass+=" receiptNo";
 }
 
-/* COLORS */
-
 let receiptClass=receipt?"receiptAmt":"";
 let balClass=(i===filtered.length-1)?"closingBal":"";
 
-/* ROW */
-
 tb.innerHTML+=`
 <tr>
-<td>${formatDate(d.date)}</td>
-<td class="${invClass}" ${click}>${d.invoice_no||""}</td>
-<td>${particular}</td>
-<td>${bill?formatNumber(bill):""}</td>
-<td class="${receiptClass}">${receipt?formatNumber(receipt):""}</td>
-<td class="${balClass}">${formatNumber(bal)}</td>
+<td class="col-date">${formatDate(d.date)}</td>
+<td class="col-no ${invClass}" ${click}>${d.invoice_no||""}</td>
+<td class="col-particular">${particular}</td>
+<td class="col-bill">${bill?formatNumber(bill):""}</td>
+<td class="col-receipt ${receiptClass}">
+${receipt?formatNumber(receipt):""}
+</td>
+<td class="col-balance ${balClass}">
+${formatNumber(bal)}
+</td>
 </tr>`;
 });
 
@@ -286,21 +273,12 @@ window.location.href=`receipt.html?receipt=${no}`;
 /* SHARE JPG */
 
 async function shareJPG(){
-
 const canvas=await html2canvas(ledgerBox,{scale:2});
-const blob=await new Promise(res=>canvas.toBlob(res));
-
+const blob=await new Promise(r=>canvas.toBlob(r));
 const file=new File([blob],"Ledger.jpg",{type:"image/jpeg"});
-
-if(navigator.share){
-navigator.share({files:[file],title:"Ledger"});
-}else{
-const a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="Ledger.jpg";
-a.click();
-}
-
+navigator.share
+? navigator.share({files:[file]})
+: window.open(URL.createObjectURL(blob));
 }
 
 /* SHARE PDF */
@@ -310,23 +288,21 @@ async function sharePDF(){
 const { jsPDF } = window.jspdf;
 
 const canvas=await html2canvas(ledgerBox,{scale:3});
-const imgData=canvas.toDataURL("image/png");
+const img=canvas.toDataURL("image/png");
 
 const pdf=new jsPDF("p","mm","a4");
 
-const imgWidth=210;
-const imgHeight=(canvas.height*imgWidth)/canvas.width;
+const w=210;
+const h=(canvas.height*w)/canvas.width;
 
-pdf.addImage(imgData,"PNG",0,5,imgWidth,imgHeight);
+pdf.addImage(img,"PNG",0,5,w,h);
 
 const blob=pdf.output("blob");
 const file=new File([blob],"Ledger.pdf",{type:"application/pdf"});
 
-if(navigator.share){
-navigator.share({files:[file],title:"Ledger"});
-}else{
-pdf.save("Ledger.pdf");
-}
+navigator.share
+? navigator.share({files:[file]})
+: pdf.save("Ledger.pdf");
 
 }
 
