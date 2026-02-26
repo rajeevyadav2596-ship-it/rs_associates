@@ -2,17 +2,23 @@
 <html>
 <head>
 <title>Ledger Statement</title>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PDF + Canvas -->
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-padding:20px;
+padding:15px;
 margin:0;
 }
+
+/* TOP BAR */
 
 .top{
 display:flex;
@@ -35,23 +41,34 @@ border:none;
 cursor:pointer;
 }
 
+/* CARD */
+
 .card{
 background:white;
 max-width:900px;
 margin:auto;
-padding:25px;
+padding:20px;
 border-radius:14px;
 box-shadow:0 6px 18px rgba(0,0,0,.08);
 }
+
+/* TITLE */
 
 h2{
 text-align:center;
 margin-bottom:20px;
 }
 
+/* TABLE */
+
+.tableWrap{
+overflow-x:auto;
+}
+
 table{
 width:100%;
 border-collapse:collapse;
+min-width:650px;
 }
 
 th{
@@ -59,24 +76,55 @@ background:#2d4a8a;
 color:white;
 padding:12px;
 text-align:center;
+font-size:14px;
 }
 
 td{
 padding:10px;
 border-bottom:1px solid #ddd;
 text-align:center;
+font-size:14px;
 }
 
 .amount{
-text-align:center;
 font-weight:500;
 }
 
+/* LINKS */
+
 .link{
-color:#2d4a8a;
 cursor:pointer;
 text-decoration:underline;
 font-weight:600;
+}
+
+/* COLORS */
+
+.receiptNo{
+color:green;
+font-weight:bold;
+}
+
+.receiptAmt{
+color:green;
+font-weight:bold;
+}
+
+.closingBal{
+color:red;
+font-weight:bold;
+font-size:15px;
+}
+
+/* MOBILE FIT */
+
+@media(max-width:600px){
+
+th,td{
+font-size:12px;
+padding:8px;
+}
+
 }
 
 </style>
@@ -87,13 +135,14 @@ font-weight:600;
 <div class="top">
 <select id="firm"></select>
 <button onclick="loadLedger()">Search</button>
-<button onclick="shareJPG()">Share JPG</button>
+<button onclick="sharePDF()">Share PDF</button>
 </div>
 
 <div id="ledgerBox" class="card">
 
 <h2>Ledger Statement</h2>
 
+<div class="tableWrap">
 <table>
 <thead>
 <tr>
@@ -107,6 +156,7 @@ font-weight:600;
 </thead>
 <tbody id="tb"></tbody>
 </table>
+</div>
 
 </div>
 
@@ -149,7 +199,6 @@ let d2=new Date(t);
 return `${months[d1.getMonth()]}-${d1.getFullYear()} 
 to 
 ${months[d2.getMonth()]}-${d2.getFullYear()}`;
-
 }
 
 /* FORMAT NUMBER */
@@ -170,7 +219,7 @@ const filtered = data.filter(x=>x.customer_id==firm.value);
 let bal=0;
 tb.innerHTML="";
 
-filtered.forEach(d=>{
+filtered.forEach((d,i)=>{
 
 let bill=Number(d.bill)||0;
 let receipt=Number(d.receipt)||0;
@@ -180,39 +229,41 @@ bal-=receipt;
 
 let particular="";
 
-/* ===== ENTRY TYPE DETECTION ===== */
+/* ENTRY TYPE */
 
 if(d.invoice_no?.startsWith("RS-")){
-// INVOICE
 particular=formatPeriod(d.period_from,d.period_to);
 }
-else if(d.invoice_no?.startsWith("P-")){
-// RECEIPT WITH NUMBER
-particular=d.particular || "Receipt";
-}
 else{
-// OLD RECEIPTS WITHOUT NUMBER
 particular=d.particular || "Receipt";
 }
 
-/* ===== CLICK LINK ===== */
+/* CLICK ROUTING */
 
-let linkAction="";
+let click="";
+let invoiceClass="link";
 
 if(d.invoice_no?.startsWith("RS-")){
-linkAction=`onclick="openInvoice('${d.invoice_no}')"`
+click=`onclick="openInvoice('${d.invoice_no}')"`
 }
-else{
-linkAction="";
+else if(d.invoice_no?.startsWith("P-")){
+click=`onclick="openReceipt('${d.invoice_no}')"`
+invoiceClass+=" receiptNo";
 }
 
-/* ===== ROW ===== */
+/* RECEIPT COLOR */
+
+let receiptClass = receipt ? "receiptAmt" : "";
+
+/* CLOSING BALANCE COLOR */
+
+let balClass = (i === filtered.length-1) ? "closingBal" : "";
 
 tb.innerHTML+=`
 <tr>
 <td>${formatDate(d.date)}</td>
 
-<td class="link" ${linkAction}>
+<td class="${invoiceClass}" ${click}>
 ${d.invoice_no||""}
 </td>
 
@@ -222,11 +273,11 @@ ${d.invoice_no||""}
 ${bill?formatNumber(bill):""}
 </td>
 
-<td class="amount">
+<td class="amount ${receiptClass}">
 ${receipt?formatNumber(receipt):""}
 </td>
 
-<td class="amount">
+<td class="amount ${balClass}">
 ${formatNumber(bal)}
 </td>
 </tr>
@@ -239,25 +290,41 @@ ${formatNumber(bal)}
 /* OPEN INVOICE */
 
 function openInvoice(no){
-
-if(!no) return;
-
-window.location.href =
-"invoice-create.html?invoice="+no;
-
+window.location.href="invoice.html?invoice="+no;
 }
 
-/* SHARE JPG */
+/* OPEN RECEIPT */
 
-function shareJPG(){
+function openReceipt(no){
+window.location.href="receipt.html?receipt="+no;
+}
 
-html2canvas(ledgerBox).then(canvas=>{
-canvas.toBlob(blob=>{
-const file=new File([blob],"Ledger.jpg",{type:"image/jpeg"});
-navigator.share({files:[file],title:"Ledger"});
+/* SHARE PDF */
+
+async function sharePDF(){
+
+const { jsPDF } = window.jspdf;
+
+const canvas = await html2canvas(ledgerBox,{
+scale:2
 });
+
+const imgData = canvas.toDataURL("image/png");
+
+const pdf = new jsPDF({
+orientation:"portrait",
+unit:"px",
+format:"a4"
 });
 
+const pageWidth = pdf.internal.pageSize.getWidth();
+const imgWidth = pageWidth - 20;
+
+const imgHeight = canvas.height * imgWidth / canvas.width;
+
+pdf.addImage(imgData,"PNG",10,10,imgWidth,imgHeight);
+
+pdf.save("Ledger.pdf");
 }
 
 </script>
