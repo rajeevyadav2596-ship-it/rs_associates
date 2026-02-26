@@ -68,22 +68,17 @@ display:flex;
 justify-content:space-between;
 }
 
-.right{text-align:right;}
-
 .invNo{
 color:red;
 font-weight:bold;
 font-size:20px;
 }
 
-.date{font-weight:bold;}
-
 .party{
 color:green;
 font-weight:bold;
 font-size:20px;
 margin-top:10px;
-text-transform:capitalize;
 }
 
 .gstin{
@@ -207,9 +202,9 @@ font-size:18px;
 <div class="header">
 <div><h2>RS Associates</h2></div>
 
-<div class="right">
+<div>
 <div class="invNo" id="invNo"></div>
-<div class="date" id="invDate"></div>
+<div id="invDate"></div>
 </div>
 </div>
 
@@ -258,6 +253,13 @@ const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
 let editInvoiceNo=null;
 
+/* SENTENCE CASE */
+
+function sentenceCase(str){
+return str.toLowerCase()
+.replace(/\b\w/g,l=>l.toUpperCase());
+}
+
 /* LOAD CUSTOMERS */
 
 async function init(){
@@ -269,35 +271,45 @@ party.innerHTML='<option value="">Select Party</option>';
 customers.forEach(c=>{
 party.innerHTML+=`
 <option value="${c.id}">
-${c.firm_name} - ${c.person_name}
+${sentenceCase(c.firm_name)} - ${sentenceCase(c.person_name)}
 </option>`;
 });
 
 await loadInvoiceIfEdit();
 }
 
-/* LOAD EXISTING INVOICE */
+/* AUTO FILL CUSTOMER */
+
+function loadCustomer(){
+const c=customers.find(x=>x.id==party.value);
+if(!c) return;
+
+person.value=c.person_name;
+gstin.value=c.gstin;
+gstFee.value=c.gst_charges;
+auditFee.value=c.audit_fee;
+itrFee.value=c.itr_fee;
+
+/* AUTO OTHER FEE */
+other1Title.value=c.other_fee_name || "";
+other1Amt.value=c.other_fee_amount || 0;
+}
+
+/* LOAD EDIT */
 
 async function loadInvoiceIfEdit(){
 
 const params=new URLSearchParams(window.location.search);
-const no =
-params.get("no") ||
-params.get("invoice");
-
+const no=params.get("invoice");
 if(!no) return;
 
 editInvoiceNo=no;
 
 const res=await fetch(API+"/api/invoice/"+no);
 const d=await res.json();
-if(!d || !d.invoice_no) return;
 
 party.value=d.customer_id;
 loadCustomer();
-
-person.value=d.person_name;
-gstin.value=d.gstin;
 
 from.value=d.period_from;
 to.value=d.period_to;
@@ -320,19 +332,6 @@ payment.value=d.payment;
 invNo.innerText=d.invoice_no;
 
 generateInvoice();
-}
-
-/* AUTO FILL */
-
-function loadCustomer(){
-const c=customers.find(x=>x.id==party.value);
-if(!c) return;
-
-person.value=c.person_name;
-gstin.value=c.gstin;
-gstFee.value=c.gst_charges;
-auditFee.value=c.audit_fee;
-itrFee.value=c.itr_fee;
 }
 
 /* MONTH DIFF */
@@ -379,12 +378,9 @@ invPeriod.innerText=formatPeriod(from.value,to.value);
 let html="";
 
 if(gstTotal>0){
-html+=`
-<tr>
-<td>
-GST Filing (${months} Months)
-<br><b>GST Fees — ₹${gstFee.value} / Month</b>
-</td>
+html+=`<tr>
+<td>GST Filing (${months} Months)<br>
+<b>GST Fees — ₹${gstFee.value}/Month</b></td>
 <td class="amount">₹${gstTotal}</td>
 </tr>`;
 }
@@ -438,7 +434,6 @@ headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 
 invoice_no:editInvoiceNo,
-
 customer_id:party.value,
 from:from.value,
 to:to.value,
@@ -463,11 +458,10 @@ final_total:total
 });
 
 const data=await res.json();
-
 editInvoiceNo=data.invoice_no;
 invNo.innerText=data.invoice_no;
 
-alert(editInvoiceNo ? "Invoice Updated ✅" : "Invoice Saved ✅");
+alert("Saved ✅");
 }
 
 /* DELETE */
@@ -479,11 +473,7 @@ alert("No invoice to delete");
 return;
 }
 
-const confirmDelete = confirm(
-"Are you sure you want to delete this invoice?\nThis action cannot be undone."
-);
-
-if(!confirmDelete) return;
+if(!confirm("Delete this invoice permanently?")) return;
 
 await fetch(API+"/api/delete-invoice",{
 method:"POST",
@@ -492,19 +482,7 @@ body:JSON.stringify({ invoice_no:editInvoiceNo })
 });
 
 alert("Invoice Deleted ✅");
-
 window.location.href="ledger.html";
-}
-
-/* SHARE JPG */
-
-function shareJPG(){
-html2canvas(invoice).then(canvas=>{
-canvas.toBlob(blob=>{
-const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
-navigator.share({ files:[file], title:"Invoice" });
-});
-});
 }
 
 init();
