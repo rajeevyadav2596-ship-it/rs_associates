@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -189,13 +190,7 @@ const API="https://backend.rajeevyadav2596.workers.dev";
 let customers=[];
 let editInvoiceNo=null;
 
-/* ================= SENTENCE CASE ================= */
-
-function sentenceCase(str){
-return str?.toLowerCase().replace(/\b\w/g,l=>l.toUpperCase()) || "";
-}
-
-/* ================= LOAD CUSTOMERS ================= */
+/* LOAD CUSTOMERS */
 
 async function init(){
 const res=await fetch(API+"/api/customers");
@@ -206,16 +201,19 @@ party.innerHTML='<option value="">Select Party</option>';
 customers.forEach(c=>{
 party.innerHTML+=`
 <option value="${c.id}">
-${sentenceCase(c.firm_name)} - ${sentenceCase(c.person_name)}
+${c.firm_name} - ${c.person_name}
 </option>`;
 });
 
 await loadInvoiceIfEdit();
 }
 
-/* ================= LOAD CUSTOMER ================= */
+/* AUTO FILL (NEW ONLY) */
 
 function loadCustomer(){
+
+if(editInvoiceNo) return; // 🔥 Prevent overwrite in edit
+
 const c=customers.find(x=>x.id==party.value);
 if(!c) return;
 
@@ -229,12 +227,12 @@ other1Title.value=c.other_fee_name || "";
 other1Amt.value=c.other_fee_amount || 0;
 }
 
-/* ================= LOAD EDIT MODE ================= */
+/* EDIT LOAD */
 
 async function loadInvoiceIfEdit(){
 
 const params=new URLSearchParams(window.location.search);
-const no = params.get("no") || params.get("invoice");
+const no=params.get("invoice")||params.get("no");
 if(!no) return;
 
 editInvoiceNo=no;
@@ -243,18 +241,29 @@ const res=await fetch(API+"/api/invoice/"+no);
 const d=await res.json();
 if(!d.invoice_no) return;
 
+/* Set party only */
 party.value=d.customer_id;
-loadCustomer();
+
+/* Load stored invoice values */
+person.value=d.person_name;
+gstin.value=d.gstin;
 
 from.value=d.period_from;
 to.value=d.period_to;
+
 auditFee.value=d.audit_total;
 itrFee.value=d.itr_total;
 
+/* Reverse GST monthly safely */
+const months=d.months||1;
+gstFee.value=Math.round((d.gst_total||0)/months);
+
 other1Title.value=d.other1_name;
 other1Amt.value=d.other1_amount;
+
 other2Title.value=d.other2_name;
 other2Amt.value=d.other2_amount;
+
 other3Title.value=d.other3_name;
 other3Amt.value=d.other3_amount;
 
@@ -266,7 +275,7 @@ invNo.innerText=d.invoice_no;
 generateInvoice();
 }
 
-/* ================= CALC ================= */
+/* CALC */
 
 function monthDiff(a,b){
 if(!a||!b) return 0;
@@ -300,48 +309,20 @@ gstTotal+
 
 let balance=total-(+payment.value||0);
 
-invParty.innerText=party.options[party.selectedIndex]?.text || "";
+invParty.innerText=party.options[party.selectedIndex]?.text||"";
 invGSTIN.innerText="GSTIN: "+gstin.value;
 invDate.innerText=new Date().toLocaleDateString();
 invPeriod.innerText=formatPeriod(from.value,to.value);
 
-let html="";
-
-if(gstTotal>0){
-html+=`<tr>
-<td>GST Filing (${months} Months)<br>
-<b>GST Fees — ₹${gstFee.value}/Month</b></td>
-<td class="amount">₹${gstTotal}</td>
-</tr>`;
-}
-
-if(auditFee.value>0)
-html+=`<tr><td>Audit</td><td class="amount">₹${auditFee.value}</td></tr>`;
-
-if(itrFee.value>0)
-html+=`<tr><td>ITR</td><td class="amount">₹${itrFee.value}</td></tr>`;
-
-if(other1Amt.value>0)
-html+=`<tr><td>${other1Title.value}</td><td class="amount">₹${other1Amt.value}</td></tr>`;
-
-if(other2Amt.value>0)
-html+=`<tr><td>${other2Title.value}</td><td class="amount">₹${other2Amt.value}</td></tr>`;
-
-if(other3Amt.value>0)
-html+=`<tr><td>${other3Title.value}</td><td class="amount">₹${other3Amt.value}</td></tr>`;
-
-if(discount.value>0)
-html+=`<tr class="discount"><td>Discount</td><td class="amount">-₹${discount.value}</td></tr>`;
-
-billBody.innerHTML=html;
 grandTotal.innerText="₹ "+total;
 paymentDisplay.innerText="₹ "+(+payment.value||0);
 balanceDisplay.innerText="₹ "+balance;
 }
 
-/* ================= SAVE ================= */
+/* SAVE */
 
 async function saveInvoice(){
+
 generateInvoice();
 
 const months=monthDiff(from.value,to.value);
@@ -364,7 +345,7 @@ invoice_no:editInvoiceNo,
 customer_id:party.value,
 from:from.value,
 to:to.value,
-months:months,
+months,
 gst_total:gstTotal,
 audit_total:+auditFee.value||0,
 itr_total:+itrFee.value||0,
@@ -387,14 +368,13 @@ invNo.innerText=data.invoice_no;
 alert("Saved ✅");
 }
 
-/* ================= DELETE ================= */
+/* DELETE */
 
 async function deleteInvoice(){
-if(!editInvoiceNo){
-alert("No invoice to delete");
-return;
-}
-if(!confirm("Delete this invoice permanently?")) return;
+
+if(!editInvoiceNo) return alert("No invoice");
+
+if(!confirm("Delete permanently?")) return;
 
 await fetch(API+"/api/delete-invoice",{
 method:"POST",
@@ -402,32 +382,29 @@ headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({ invoice_no:editInvoiceNo })
 });
 
-alert("Invoice Deleted ✅");
+alert("Deleted");
 window.location.href="ledger.html";
 }
 
-/* ================= SHARE JPG ================= */
+/* SHARE JPG */
 
 function shareJPG(){
 
-const element=document.getElementById("invoice");
+const el=document.getElementById("invoice");
 
-html2canvas(element,{scale:2}).then(canvas=>{
-
+html2canvas(el,{scale:2}).then(canvas=>{
 canvas.toBlob(async blob=>{
-
-if(navigator.canShare && navigator.canShare({files:[new File([blob],'Invoice.jpg',{type:'image/jpeg'})]})){
 const file=new File([blob],"Invoice.jpg",{type:"image/jpeg"});
+
+if(navigator.canShare?.({files:[file]})){
 await navigator.share({files:[file],title:"Invoice"});
 }else{
-const link=document.createElement("a");
-link.download="Invoice.jpg";
-link.href=URL.createObjectURL(blob);
-link.click();
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="Invoice.jpg";
+a.click();
 }
-
 });
-
 });
 
 }
@@ -438,3 +415,4 @@ init();
 
 </body>
 </html>
+```
