@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>Receipt Entry</title>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -13,6 +14,8 @@ margin:0;
 padding:15px;
 }
 
+/* CARD */
+
 .card{
 background:white;
 padding:22px;
@@ -21,6 +24,12 @@ max-width:500px;
 margin:auto;
 box-shadow:0 6px 20px rgba(0,0,0,0.08);
 }
+
+h2{
+margin-top:0;
+}
+
+/* FORM */
 
 label{
 font-weight:600;
@@ -37,6 +46,8 @@ border-radius:6px;
 font-size:15px;
 }
 
+/* BUTTON */
+
 button{
 width:100%;
 padding:13px;
@@ -47,10 +58,27 @@ color:white;
 font-weight:600;
 margin-top:18px;
 cursor:pointer;
+font-size:15px;
+}
+
+button:hover{
+background:#1f3c88;
 }
 
 .deleteBtn{
 background:#c0392b;
+}
+
+.deleteBtn:hover{
+background:#962d22;
+}
+
+/* MOBILE */
+
+@media(max-width:600px){
+.card{
+padding:18px;
+}
 }
 
 </style>
@@ -72,7 +100,7 @@ background:#c0392b;
 <input type="date" id="date">
 
 <label>Amount</label>
-<input type="number" id="amount">
+<input type="number" id="amount" placeholder="Enter Amount">
 
 <label>Nature of Payment</label>
 <select id="nature">
@@ -94,13 +122,15 @@ background:#c0392b;
 <script>
 
 const API="https://backend.rajeevyadav2596.workers.dev";
-let currentReceiptNo=null;
 
-/* LOAD FIRMS */
+let editReceiptNo=null;
+
+/* ================= LOAD FIRMS ================= */
 
 async function loadFirms(){
-const res=await fetch(API+"/api/customers");
-const data=await res.json();
+
+const res = await fetch(API+"/api/customers");
+const data = await res.json();
 
 firm.innerHTML='<option value="">Select Firm</option>';
 
@@ -110,64 +140,115 @@ firm.innerHTML+=`
 ${c.firm_name} - ${c.person_name}
 </option>`;
 });
+
 }
 
-/* DEFAULT DATE */
+/* ================= DEFAULT DATE ================= */
 
-date.value=new Date().toISOString().split("T")[0];
+date.value = new Date().toISOString().split("T")[0];
 
-/* SAVE */
+/* ================= LOAD RECEIPT IF EDIT ================= */
+
+async function loadReceiptIfEdit(){
+
+const params=new URLSearchParams(window.location.search);
+const no=params.get("receipt");
+
+if(!no) return;
+
+editReceiptNo=no;
+
+const res=await fetch(API+"/api/receipt/"+no);
+const d=await res.json();
+
+if(!d || !d.receipt_no) return;
+
+receiptNo.value=d.receipt_no;
+firm.value=d.customer_id;
+date.value=d.date;
+amount.value=d.amount;
+nature.value=d.nature;
+
+}
+
+/* ================= SAVE RECEIPT ================= */
 
 async function saveReceipt(){
 
-if(!firm.value){ alert("Select Firm"); return; }
-if(!amount.value){ alert("Enter Amount"); return; }
+if(!firm.value){
+alert("Select Firm");
+return;
+}
+
+if(!amount.value){
+alert("Enter Amount");
+return;
+}
+
+/* EDIT MODE BLOCKED (Receipts not editable, only delete + new) */
+
+if(editReceiptNo){
+alert("Delete and recreate receipt if correction needed.");
+return;
+}
 
 const res=await fetch(API+"/api/add-receipt",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
-customer_id:firm.value,
-amount:amount.value,
-nature:nature.value,
-date:date.value
+customer_id: firm.value,
+amount: amount.value,
+nature: nature.value,
+date: date.value
 })
 });
 
 const data=await res.json();
 
-currentReceiptNo=data.receipt_no;
 receiptNo.value=data.receipt_no;
+editReceiptNo=data.receipt_no;
 
 alert("Receipt Saved ✅");
 
-amount.value="";
 }
 
-/* DELETE */
+/* ================= DELETE RECEIPT ================= */
 
 async function deleteReceipt(){
 
-if(!currentReceiptNo){
+if(!editReceiptNo){
 alert("No receipt to delete");
 return;
 }
 
-if(!confirm("Delete this receipt permanently?")) return;
+const confirmDelete = confirm(
+"Are you sure you want to delete this receipt?\nThis action cannot be undone."
+);
+
+if(!confirmDelete) return;
 
 await fetch(API+"/api/delete-receipt",{
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
-receipt_no:currentReceiptNo
+receipt_no: editReceiptNo
 })
 });
 
 alert("Receipt Deleted ✅");
-location.reload();
+
+window.location.href="ledger.html";
+
 }
 
-loadFirms();
+/* ================= INIT ================= */
+
+async function init(){
+await loadFirms();
+await loadReceiptIfEdit();
+}
+
+init();
 
 </script>
 
