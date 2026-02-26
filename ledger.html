@@ -14,17 +14,17 @@
 body{
 font-family:Segoe UI;
 background:#eef2f7;
-padding:15px;
+padding:12px;
 margin:0;
 }
 
-/* TOP BAR */
+/* TOP */
 
 .top{
 display:flex;
 gap:10px;
 flex-wrap:wrap;
-margin-bottom:20px;
+margin-bottom:15px;
 }
 
 select,button{
@@ -45,9 +45,10 @@ cursor:pointer;
 
 .card{
 background:white;
+width:100%;
 max-width:900px;
 margin:auto;
-padding:20px;
+padding:15px;
 border-radius:14px;
 box-shadow:0 6px 18px rgba(0,0,0,.08);
 }
@@ -56,49 +57,42 @@ box-shadow:0 6px 18px rgba(0,0,0,.08);
 
 h2{
 text-align:center;
-margin-bottom:20px;
+margin-bottom:15px;
 }
 
 /* TABLE */
 
 .tableWrap{
+width:100%;
 overflow-x:auto;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
-min-width:650px;
 }
 
 th{
 background:#2d4a8a;
 color:white;
-padding:12px;
-text-align:center;
-font-size:14px;
+padding:10px;
+font-size:13px;
 }
 
 td{
-padding:10px;
+padding:9px;
 border-bottom:1px solid #ddd;
+font-size:13px;
 text-align:center;
-font-size:14px;
 }
 
-.amount{
-font-weight:500;
-}
-
-/* LINKS */
+/* COLORS */
 
 .link{
 cursor:pointer;
 text-decoration:underline;
 font-weight:600;
 }
-
-/* COLORS */
 
 .receiptNo{
 color:green;
@@ -113,16 +107,19 @@ font-weight:bold;
 .closingBal{
 color:red;
 font-weight:bold;
-font-size:15px;
 }
 
-/* MOBILE FIT */
+/* MOBILE SCALE */
 
 @media(max-width:600px){
 
+.card{
+padding:12px;
+}
+
 th,td{
 font-size:12px;
-padding:8px;
+padding:7px;
 }
 
 }
@@ -164,7 +161,7 @@ padding:8px;
 
 const API="https://backend.rajeevyadav2596.workers.dev";
 
-/* LOAD CUSTOMERS */
+/* LOAD FIRMS */
 
 fetch(API+"/api/customers")
 .then(r=>r.json())
@@ -178,30 +175,19 @@ ${c.firm_name} - ${c.person_name}
 });
 });
 
-/* FORMAT DATE */
+/* FORMATTERS */
 
 function formatDate(dt){
 return new Date(dt).toLocaleDateString("en-GB");
 }
 
-/* FORMAT PERIOD */
-
 function formatPeriod(f,t){
-
-if(!f || !t) return "";
-
-const months=["Jan","Feb","Mar","Apr","May","Jun",
-"Jul","Aug","Sep","Oct","Nov","Dec"];
-
+if(!f||!t) return "";
+const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 let d1=new Date(f);
 let d2=new Date(t);
-
-return `${months[d1.getMonth()]}-${d1.getFullYear()} 
-to 
-${months[d2.getMonth()]}-${d2.getFullYear()}`;
+return `${m[d1.getMonth()]}-${d1.getFullYear()} to ${m[d2.getMonth()]}-${d2.getFullYear()}`;
 }
-
-/* FORMAT NUMBER */
 
 function formatNumber(n){
 return Number(n).toLocaleString("en-IN");
@@ -211,120 +197,117 @@ return Number(n).toLocaleString("en-IN");
 
 async function loadLedger(){
 
-const res = await fetch(API+"/api/ledger-dashboard");
-const data = await res.json();
+const res=await fetch(API+"/api/ledger-dashboard");
+const data=await res.json();
 
-const filtered = data.filter(x=>x.customer_id==firm.value);
+const filtered=data.filter(x=>x.customer_id==firm.value);
 
 let bal=0;
 tb.innerHTML="";
 
 filtered.forEach((d,i)=>{
 
-let bill=Number(d.bill)||0;
-let receipt=Number(d.receipt)||0;
+let bill=+d.bill||0;
+let receipt=+d.receipt||0;
 
 bal+=bill;
 bal-=receipt;
 
 let particular="";
+let click="";
+let invClass="link";
 
-/* ENTRY TYPE */
+/* TYPE */
 
 if(d.invoice_no?.startsWith("RS-")){
 particular=formatPeriod(d.period_from,d.period_to);
-}
-else{
-particular=d.particular || "Receipt";
-}
-
-/* CLICK ROUTING */
-
-let click="";
-let invoiceClass="link";
-
-if(d.invoice_no?.startsWith("RS-")){
 click=`onclick="openInvoice('${d.invoice_no}')"`
 }
 else if(d.invoice_no?.startsWith("P-")){
+particular=d.particular||"Receipt";
 click=`onclick="openReceipt('${d.invoice_no}')"`
-invoiceClass+=" receiptNo";
+invClass+=" receiptNo";
 }
 
-/* RECEIPT COLOR */
+/* COLORS */
 
-let receiptClass = receipt ? "receiptAmt" : "";
+let receiptClass=receipt?"receiptAmt":"";
+let balClass=(i===filtered.length-1)?"closingBal":"";
 
-/* CLOSING BALANCE COLOR */
-
-let balClass = (i === filtered.length-1) ? "closingBal" : "";
+/* ROW */
 
 tb.innerHTML+=`
 <tr>
 <td>${formatDate(d.date)}</td>
 
-<td class="${invoiceClass}" ${click}>
+<td class="${invClass}" ${click}>
 ${d.invoice_no||""}
 </td>
 
 <td>${particular}</td>
 
-<td class="amount">
-${bill?formatNumber(bill):""}
-</td>
+<td>${bill?formatNumber(bill):""}</td>
 
-<td class="amount ${receiptClass}">
+<td class="${receiptClass}">
 ${receipt?formatNumber(receipt):""}
 </td>
 
-<td class="amount ${balClass}">
+<td class="${balClass}">
 ${formatNumber(bal)}
 </td>
-</tr>
-`;
-
+</tr>`;
 });
 
 }
 
-/* OPEN INVOICE */
+/* ROUTING */
 
 function openInvoice(no){
-window.location.href="invoice.html?invoice="+no;
+window.location.href=`invoice.html?invoice=${no}`;
 }
-
-/* OPEN RECEIPT */
 
 function openReceipt(no){
-window.location.href="receipt.html?receipt="+no;
+window.location.href=`receipt.html?receipt=${no}`;
 }
 
-/* SHARE PDF */
+/* SHARE PDF (A4 MOBILE FIT) */
 
 async function sharePDF(){
 
 const { jsPDF } = window.jspdf;
 
-const canvas = await html2canvas(ledgerBox,{
-scale:2
+const canvas=await html2canvas(ledgerBox,{
+scale:3,
+useCORS:true
 });
 
-const imgData = canvas.toDataURL("image/png");
+const imgData=canvas.toDataURL("image/png");
 
-const pdf = new jsPDF({
-orientation:"portrait",
-unit:"px",
-format:"a4"
+const pdf=new jsPDF("p","mm","a4");
+
+const pageWidth=210;
+const pageHeight=295;
+
+const imgWidth=pageWidth;
+const imgHeight=(canvas.height*imgWidth)/canvas.width;
+
+pdf.addImage(imgData,"PNG",0,5,imgWidth,imgHeight);
+
+/* SHARE INSTEAD OF DOWNLOAD */
+
+const blob=pdf.output("blob");
+
+const file=new File([blob],"Ledger.pdf",{type:"application/pdf"});
+
+if(navigator.share){
+navigator.share({
+files:[file],
+title:"Ledger Statement"
 });
-
-const pageWidth = pdf.internal.pageSize.getWidth();
-const imgWidth = pageWidth - 20;
-
-const imgHeight = canvas.height * imgWidth / canvas.width;
-
-pdf.addImage(imgData,"PNG",10,10,imgWidth,imgHeight);
-
+}else{
 pdf.save("Ledger.pdf");
+}
+
 }
 
 </script>
